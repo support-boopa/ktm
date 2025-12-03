@@ -92,7 +92,7 @@ export const Navbar = () => {
               </button>
               
               {showCategories && (
-                <div className="absolute top-full left-0 mt-2 w-48 glass-morphism rounded-xl border border-border/30 py-2 animate-scale-in origin-top-left">
+                <div className="absolute top-full left-0 mt-2 w-48 bg-background/95 backdrop-blur-xl rounded-xl border border-border/50 py-2 animate-scale-in origin-top-left shadow-xl z-[100]">
                   <Link
                     to="/categories"
                     onClick={() => setShowCategories(false)}
@@ -113,7 +113,10 @@ export const Navbar = () => {
                           location.pathname === `/categories/${cat.slug}` && "text-primary bg-primary/10"
                         )}
                       >
-                        <span>{cat.name}</span>
+                        <span className="flex items-center gap-2">
+                          <span>{cat.icon}</span>
+                          <span>{cat.name}</span>
+                        </span>
                         {cat.count > 0 && (
                           <span className="text-xs text-muted-foreground">{cat.count}</span>
                         )}

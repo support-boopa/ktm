@@ -79,34 +79,44 @@ export function useGames() {
   };
 
   const incrementViews = async (gameId: string) => {
-    // Check if already viewed in this session
-    const viewedGames = JSON.parse(localStorage.getItem("ktm_viewed_games") || "[]");
+    // Check if already viewed in localStorage
+    const viewedGames: string[] = JSON.parse(localStorage.getItem("ktm_viewed_games") || "[]");
+    
     if (viewedGames.includes(gameId)) {
-      return;
+      return; // Already viewed, don't increment
     }
 
-    // Mark as viewed
+    // Mark as viewed in localStorage immediately
     viewedGames.push(gameId);
     localStorage.setItem("ktm_viewed_games", JSON.stringify(viewedGames));
 
-    // Increment in database using direct update
-    await supabase
-      .from("games")
-      .update({ views: supabase.rpc ? undefined : undefined })
-      .eq("id", gameId);
-    
-    // Use raw SQL increment via edge function or direct increment
-    const { data: game } = await supabase
-      .from("games")
-      .select("views")
-      .eq("id", gameId)
-      .single();
-    
-    if (game) {
-      await supabase
+    // Increment in database
+    try {
+      // Get current views
+      const { data: game } = await supabase
         .from("games")
-        .update({ views: (game.views || 0) + 1 })
-        .eq("id", gameId);
+        .select("views")
+        .eq("id", gameId)
+        .single();
+      
+      if (game) {
+        const newViews = (game.views || 0) + 1;
+        
+        // Update in database
+        await supabase
+          .from("games")
+          .update({ views: newViews })
+          .eq("id", gameId);
+
+        // Update local state
+        setGames(prevGames => 
+          prevGames.map(g => 
+            g.id === gameId ? { ...g, views: newViews } : g
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error incrementing views:", error);
     }
   };
 
