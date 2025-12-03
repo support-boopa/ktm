@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Tajawal', 'sans-serif'],
-        display: ['Orbitron', 'sans-serif'],
+        sans: ['Cairo', 'sans-serif'],
+        display: ['Outfit', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
