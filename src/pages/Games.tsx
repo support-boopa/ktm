@@ -1,22 +1,53 @@
 import { useState, useMemo } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { GameCard } from "@/components/games/GameCard";
-import { games, categories } from "@/data/games";
-import { Search, Filter, Grid3X3, LayoutGrid } from "lucide-react";
+import { useGames } from "@/hooks/useGames";
+import { Search, Filter, Grid3X3, LayoutGrid, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const sizeRanges = [
+  { value: "all", label: "كل الأحجام" },
+  { value: "small", label: "أقل من 10 GB" },
+  { value: "medium", label: "10 - 50 GB" },
+  { value: "large", label: "أكثر من 50 GB" },
+];
 
 const Games = () => {
+  const { games, categories, isLoading } = useGames();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedSize, setSelectedSize] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "large">("grid");
 
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
       const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !selectedCategory || game.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+      const matchesCategory = selectedCategory === "all" || game.category === selectedCategory;
+      
+      // Size filter
+      let matchesSize = true;
+      if (selectedSize !== "all") {
+        const sizeNum = parseFloat(game.size.replace(/[^0-9.]/g, ""));
+        if (selectedSize === "small") matchesSize = sizeNum < 10;
+        else if (selectedSize === "medium") matchesSize = sizeNum >= 10 && sizeNum <= 50;
+        else if (selectedSize === "large") matchesSize = sizeNum > 50;
+      }
+      
+      return matchesSearch && matchesCategory && matchesSize;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [games, searchQuery, selectedCategory, selectedSize]);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -32,53 +63,57 @@ const Games = () => {
         </div>
 
         {/* Filters */}
-        <div className="glass-card p-4 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="glass-card p-4 mb-8 space-y-4">
           {/* Search */}
-          <div className="relative w-full md:w-96">
+          <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
+            <Input
               type="text"
               placeholder="ابحث عن لعبة..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input w-full pr-10 text-right"
+              className="pr-10 text-right"
               dir="rtl"
             />
           </div>
 
-          <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
             {/* Category Filter */}
-            <div className="flex items-center gap-2 flex-1 md:flex-none overflow-x-auto pb-2 md:pb-0">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Filter className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-all duration-300",
-                  !selectedCategory
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                )}
-              >
-                الكل
-              </button>
-              {categories.slice(0, 5).map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.name)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-all duration-300",
-                    selectedCategory === category.name
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                  )}
-                >
-                  {category.name}
-                </button>
-              ))}
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="التصنيف" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل التصنيفات</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.slug}>
+                      {category.name} ({category.count})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Size Filter */}
+            <div className="w-full sm:w-auto">
+              <Select value={selectedSize} onValueChange={setSelectedSize}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="الحجم" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sizeRanges.map((range) => (
+                    <SelectItem key={range.value} value={range.value}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
+            <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50 mr-auto">
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(

@@ -14,13 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          count: number
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          icon?: string
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      games: {
+        Row: {
+          background_image: string | null
+          category: string
+          created_at: string
+          description: string
+          developer: string | null
+          download_link: string | null
+          features: string[] | null
+          genre: string | null
+          id: string
+          image: string
+          platforms: string[] | null
+          rating: number | null
+          release_date: string
+          screenshots: string[] | null
+          size: string
+          slug: string
+          system_requirements_minimum: Json | null
+          system_requirements_recommended: Json | null
+          title: string
+          updated_at: string
+          version: string
+          views: number
+        }
+        Insert: {
+          background_image?: string | null
+          category: string
+          created_at?: string
+          description: string
+          developer?: string | null
+          download_link?: string | null
+          features?: string[] | null
+          genre?: string | null
+          id?: string
+          image: string
+          platforms?: string[] | null
+          rating?: number | null
+          release_date?: string
+          screenshots?: string[] | null
+          size: string
+          slug: string
+          system_requirements_minimum?: Json | null
+          system_requirements_recommended?: Json | null
+          title: string
+          updated_at?: string
+          version?: string
+          views?: number
+        }
+        Update: {
+          background_image?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          developer?: string | null
+          download_link?: string | null
+          features?: string[] | null
+          genre?: string | null
+          id?: string
+          image?: string
+          platforms?: string[] | null
+          rating?: number | null
+          release_date?: string
+          screenshots?: string[] | null
+          size?: string
+          slug?: string
+          system_requirements_minimum?: Json | null
+          system_requirements_recommended?: Json | null
+          title?: string
+          updated_at?: string
+          version?: string
+          views?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_views: { Args: { game_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
