@@ -26,10 +26,10 @@ export const games: Game[] = [
     size: "70 GB",
     description: "Cyberpunk 2077 is an open-world, action-adventure RPG set in the megalopolis of Night City, where you play as a cyberpunk mercenary wrapped up in a do-or-die fight for survival. Improved and featuring all-new free additional content, customize your character and playstyle as you take on jobs, build a reputation, and unlock upgrades.",
     features: [
-      "Open World RPG - Explore Night City, a megalopolis obsessed with power, glamour and body modification",
-      "Character Customization - Create your own cyberpunk with unique cyberware, skillset and playstyle",
-      "Story-Driven Narrative - Take the riskiest job of your life and go after a prototype implant",
-      "Next-Gen Graphics - Experience the most visually stunning open world ever created"
+      "Open World RPG – Explore Night City, a megalopolis obsessed with power, glamour and body modification",
+      "Character Customization – Create your own cyberpunk with unique cyberware, skillset and playstyle",
+      "Story-Driven Narrative – Take the riskiest job of your life and go after a prototype implant",
+      "Next-Gen Graphics – Experience the most visually stunning open world ever created"
     ],
     systemRequirements: {
       minimum: {
@@ -48,12 +48,9 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/cyberpunk2077" }
     ],
-    screenshots: [
-      "https://steamrip.com/wp-content/uploads/2020/12/cyberpunk-2077-screenshots-steamrip.jpg"
-    ],
+    screenshots: [],
     developer: "CD PROJEKT RED",
     genre: "Action, RPG, Open World",
     featured: true,
@@ -73,10 +70,10 @@ export const games: Game[] = [
     size: "50 GB",
     description: "THE NEW FANTASY ACTION RPG. Rise, Tarnished, and be guided by grace to brandish the power of the Elden Ring and become an Elden Lord in the Lands Between. A vast world full of excitement, with a variety of situations and huge dungeons with complex and three-dimensional designs.",
     features: [
-      "A Vast World Full of Excitement - A vast world where open fields with a variety of situations and huge dungeons",
-      "Create your Own Character - Customize the appearance of your character and freely combine weapons, armor, and magic",
-      "An Epic Drama Born from a Myth - A multilayered story told in fragments",
-      "Unique Online Play - Connect with other players and travel together"
+      "A Vast World Full of Excitement – A vast world where open fields with a variety of situations and huge dungeons",
+      "Create your Own Character – Customize the appearance of your character and freely combine weapons, armor, and magic",
+      "An Epic Drama Born from a Myth – A multilayered story told in fragments",
+      "Unique Online Play – Connect with other players and travel together"
     ],
     systemRequirements: {
       minimum: {
@@ -95,8 +92,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/eldenring" }
     ],
     screenshots: [],
     developer: "FromSoftware",
@@ -118,10 +114,10 @@ export const games: Game[] = [
     size: "85 GB",
     description: "Embark on an epic and heartfelt journey as Kratos and Atreus struggle with holding on and letting go. Witness the changing dynamic of their relationship as they prepare for war; Atreus hungers for knowledge to help him grasp the prophecy of Loki, as Kratos struggles to free himself from the past.",
     features: [
-      "Journey Through All Nine Realms - Travel across mythical realms to find answers",
-      "Experience Ragnarök - Witness the epic conclusion to the Norse saga",
-      "Master New Combat - Wield powerful new weapons and abilities",
-      "Explore a Deeper Story - Experience the emotional journey of Kratos and Atreus"
+      "Journey Through All Nine Realms – Travel across mythical realms to find answers",
+      "Experience Ragnarök – Witness the epic conclusion to the Norse saga",
+      "Master New Combat – Wield powerful new weapons and abilities",
+      "Explore a Deeper Story – Experience the emotional journey of Kratos and Atreus"
     ],
     systemRequirements: {
       minimum: {
@@ -140,8 +136,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/godofwarragnarok" }
     ],
     screenshots: [],
     developer: "Santa Monica Studio",
@@ -163,10 +158,10 @@ export const games: Game[] = [
     size: "120 GB",
     description: "Gather your party and return to the Forgotten Realms in a tale of fellowship and betrayal, sacrifice and survival, and the lure of absolute power. Mysterious abilities are awakening inside you, drawn from a mind flayer parasite planted in your brain.",
     features: [
-      "An Epic D&D Adventure - Create your character and explore the Forgotten Realms",
-      "Turn-Based Combat - Strategic D&D 5th Edition combat",
-      "Your Choices Matter - Every decision shapes your story",
-      "Online Co-op - Play with up to 4 players in online co-op"
+      "An Epic D&D Adventure – Create your character and explore the Forgotten Realms",
+      "Turn-Based Combat – Strategic D&D 5th Edition combat",
+      "Your Choices Matter – Every decision shapes your story",
+      "Online Co-op – Play with up to 4 players in online co-op"
     ],
     systemRequirements: {
       minimum: {
@@ -185,8 +180,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/baldursgate3" }
     ],
     screenshots: [],
     developer: "Larian Studios",
@@ -208,10 +202,10 @@ export const games: Game[] = [
     size: "6.1 GB",
     description: "Cowboy Life Simulator is an immersive and relaxing single-player Wild West ranching simulator. Step into the boots of a stressed-out businessman who, after a failed venture, decides to change his life and buys a farm in the Wild West.",
     features: [
-      "Immersive Open World - Travel across a map filled with diverse locations",
-      "Ranch Building - Build your own ranch, construct utility buildings",
-      "Farming & Animal Caretaking - Plant, tend to, and harvest over 20 different crops",
-      "Engaging Storylines - Dive into the extensive history of Bravestand"
+      "Immersive Open World – Travel across a map filled with diverse locations",
+      "Ranch Building – Build your own ranch, construct utility buildings",
+      "Farming & Animal Caretaking – Plant, tend to, and harvest over 20 different crops",
+      "Engaging Storylines – Dive into the extensive history of Bravestand"
     ],
     systemRequirements: {
       minimum: {
@@ -230,8 +224,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/2jRkGD" }
     ],
     screenshots: [
       "https://steamrip.com/wp-content/uploads/2025/12/cowboy-life-simulator-screenshots-steamrip.jpg",
@@ -255,10 +248,10 @@ export const games: Game[] = [
     size: "8 GB",
     description: "A psychological horror game that takes you deep into the realm of nightmares. Explore your darkest fears and face the demons that lurk in your subconscious mind.",
     features: [
-      "Psychological Horror - Experience true terror",
-      "Dark Atmosphere - Immersive and terrifying environments",
-      "Story-Driven - Uncover the mysteries of your mind",
-      "Unique Gameplay - Innovative horror mechanics"
+      "Psychological Horror – Experience true terror",
+      "Dark Atmosphere – Immersive and terrifying environments",
+      "Story-Driven – Uncover the mysteries of your mind",
+      "Unique Gameplay – Innovative horror mechanics"
     ],
     systemRequirements: {
       minimum: {
@@ -277,8 +270,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/sleepawake" }
     ],
     screenshots: [],
     developer: "Unknown",
@@ -299,10 +291,10 @@ export const games: Game[] = [
     size: "55 GB",
     description: "Join the Marvel heroes in an epic cosmic battle against universal threats. Choose your favorite superhero and fight to save the universe from destruction.",
     features: [
-      "Play as Marvel Heroes - Choose from iconic superheroes",
-      "Cosmic Adventure - Travel across the universe",
-      "Epic Battles - Face powerful cosmic villains",
-      "Multiplayer - Team up with friends"
+      "Play as Marvel Heroes – Choose from iconic superheroes",
+      "Cosmic Adventure – Travel across the universe",
+      "Epic Battles – Face powerful cosmic villains",
+      "Multiplayer – Team up with friends"
     ],
     systemRequirements: {
       minimum: {
@@ -321,8 +313,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/marvelcosmic" }
     ],
     screenshots: [],
     developer: "Marvel Games",
@@ -343,10 +334,10 @@ export const games: Game[] = [
     size: "18 GB",
     description: "A retro-styled platformer with modern gameplay mechanics. Challenge yourself through hundreds of levels and discover what infinite lives truly means.",
     features: [
-      "Retro Style - Classic pixel art graphics",
-      "Modern Gameplay - Smooth and responsive controls",
-      "Hundreds of Levels - Endless challenges await",
-      "Secrets to Discover - Hidden areas and collectibles"
+      "Retro Style – Classic pixel art graphics",
+      "Modern Gameplay – Smooth and responsive controls",
+      "Hundreds of Levels – Endless challenges await",
+      "Secrets to Discover – Hidden areas and collectibles"
     ],
     systemRequirements: {
       minimum: {
@@ -365,8 +356,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/infinitelives" }
     ],
     screenshots: [],
     developer: "Indie Studio",
@@ -387,10 +377,10 @@ export const games: Game[] = [
     size: "75 GB",
     description: "In the late 13th century, the Mongol empire has laid waste to entire nations. Jin Sakai, one of the last surviving samurai, rises from the ashes to fight back. Embrace the way of the Ghost to wage an unconventional war for the freedom of Tsushima.",
     features: [
-      "Open World Samurai Adventure - Explore feudal Japan",
-      "Beautiful Visuals - Stunning landscapes and environments",
-      "Deep Combat System - Master the way of the samurai",
-      "Iki Island Expansion - New story content included"
+      "Open World Samurai Adventure – Explore feudal Japan",
+      "Beautiful Visuals – Stunning landscapes and environments",
+      "Deep Combat System – Master the way of the samurai",
+      "Iki Island Expansion – New story content included"
     ],
     systemRequirements: {
       minimum: {
@@ -409,8 +399,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/ghostoftsushima" }
     ],
     screenshots: [],
     developer: "Sucker Punch Productions",
@@ -432,10 +421,10 @@ export const games: Game[] = [
     size: "120 GB",
     description: "Your Ultimate Horizon Adventure awaits! Explore the vibrant and ever-evolving open world landscapes of Mexico with limitless, fun driving action in hundreds of the world's greatest cars.",
     features: [
-      "Explore Mexico - A vibrant open world with diverse biomes",
-      "Hundreds of Cars - Drive the world's greatest cars",
-      "Online Multiplayer - Race with friends and rivals",
-      "Stunning Graphics - Next-gen visuals"
+      "Explore Mexico – A vibrant open world with diverse biomes",
+      "Hundreds of Cars – Drive the world's greatest cars",
+      "Online Multiplayer – Race with friends and rivals",
+      "Stunning Graphics – Next-gen visuals"
     ],
     systemRequirements: {
       minimum: {
@@ -454,8 +443,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/forzahorizon5" }
     ],
     screenshots: [],
     developer: "Playground Games",
@@ -476,10 +464,10 @@ export const games: Game[] = [
     size: "30 GB",
     description: "Fight, farm, build and work alongside mysterious creatures called Pals in this completely new multiplayer open world survival and crafting game.",
     features: [
-      "Catch and Collect Pals - Over 100 unique Pals to find",
-      "Survival Crafting - Build your base and survive",
-      "Multiplayer Co-op - Play with up to 32 players",
-      "Open World - Explore vast landscapes"
+      "Catch and Collect Pals – Over 100 unique Pals to find",
+      "Survival Crafting – Build your base and survive",
+      "Multiplayer Co-op – Play with up to 32 players",
+      "Open World – Explore vast landscapes"
     ],
     systemRequirements: {
       minimum: {
@@ -498,8 +486,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/palworld" }
     ],
     screenshots: [],
     developer: "Pocketpair",
@@ -520,10 +507,10 @@ export const games: Game[] = [
     size: "25 GB",
     description: "Experience the world of Solo Leveling like never before. Take on the role of Sung Jinwoo and level up from the weakest hunter to the strongest.",
     features: [
-      "Based on Popular Manhwa - Authentic Solo Leveling experience",
-      "Action Combat - Fast-paced battles",
-      "Level Up System - Become stronger with each battle",
-      "Co-op Mode - Team up with friends"
+      "Based on Popular Manhwa – Authentic Solo Leveling experience",
+      "Action Combat – Fast-paced battles",
+      "Level Up System – Become stronger with each battle",
+      "Co-op Mode – Team up with friends"
     ],
     systemRequirements: {
       minimum: {
@@ -542,8 +529,7 @@ export const games: Game[] = [
       }
     },
     downloadLinks: [
-      { name: "GOFILE", url: "#" },
-      { name: "Buzzheavier", url: "#" }
+      { name: "GOFILE", url: "https://gofile.io/d/sololeveling" }
     ],
     screenshots: [],
     developer: "Netmarble",
