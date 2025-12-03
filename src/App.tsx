@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Games from "./pages/Games";
 import GameDetails from "./pages/GameDetails";
 import Categories from "./pages/Categories";
+import CategoryGames from "./pages/CategoryGames";
 import TopGames from "./pages/TopGames";
 import RecentGames from "./pages/RecentGames";
 import Admin from "./pages/Admin";
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/games" element={<Games />} />
           <Route path="/categories" element={<Categories />} />
+          <Route path="/categories/:slug" element={<CategoryGames />} />
           <Route path="/top-games" element={<TopGames />} />
           <Route path="/recent" element={<RecentGames />} />
           <Route path="/ktm-admin-panel" element={<Admin />} />
