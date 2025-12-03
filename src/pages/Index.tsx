@@ -3,14 +3,29 @@ import { FeaturedCarousel } from "@/components/games/FeaturedCarousel";
 import { GameCard } from "@/components/games/GameCard";
 import { CategoryCard } from "@/components/games/CategoryCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { featuredGames, recentGames, categories, games } from "@/data/games";
-import { Sparkles, Zap, Shield, Clock } from "lucide-react";
+import { useGames } from "@/hooks/useGames";
+import { Sparkles, Zap, Shield, Clock, Loader2 } from "lucide-react";
 
 const Index = () => {
+  const { games, categories, isLoading } = useGames();
+  
+  const featuredGames = games.filter(g => g.rating && g.rating >= 4.5).slice(0, 5);
+  const recentGames = games.slice(0, 12);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       {/* Hero Carousel */}
-      <FeaturedCarousel games={featuredGames} />
+      {featuredGames.length > 0 && <FeaturedCarousel games={featuredGames} />}
 
       {/* Features */}
       <section className="container mx-auto px-4 py-16">
@@ -35,46 +50,45 @@ const Index = () => {
       </section>
 
       {/* Categories */}
-      <section className="container mx-auto px-4 py-8">
-        <SectionHeader
-          title="Categories"
-          subtitle="Browse by genre"
-          href="/categories"
-        />
-        <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-4">
-          {categories.map((category, index) => (
-            <CategoryCard key={category.id} category={category} index={index} />
-          ))}
-        </div>
-      </section>
+      {categories.length > 0 && (
+        <section className="container mx-auto px-4 py-8">
+          <SectionHeader
+            title="التصنيفات"
+            subtitle="تصفح حسب النوع"
+            href="/categories"
+          />
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+            {categories.map((category, index) => (
+              <CategoryCard key={category.id} category={category} index={index} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Recently Added */}
-      <section className="container mx-auto px-4 py-16">
-        <SectionHeader
-          title="Recently Added"
-          subtitle="Latest games added to the library"
-          href="/recent"
-        />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6">
-          {recentGames.slice(0, 12).map((game, index) => (
-            <GameCard key={game.id} game={game} index={index} />
-          ))}
-        </div>
-      </section>
+      {recentGames.length > 0 && (
+        <section className="container mx-auto px-4 py-16">
+          <SectionHeader
+            title="أحدث الألعاب"
+            subtitle="آخر الألعاب المضافة للمكتبة"
+            href="/recent"
+          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6">
+            {recentGames.map((game, index) => (
+              <GameCard key={game.id} game={game} index={index} />
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* All Games */}
-      <section className="container mx-auto px-4 py-16">
-        <SectionHeader
-          title="All Games"
-          subtitle="Browse our full library"
-          href="/games"
-        />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6">
-          {games.map((game, index) => (
-            <GameCard key={game.id} game={game} index={index} />
-          ))}
-        </div>
-      </section>
+      {/* Empty State */}
+      {games.length === 0 && (
+        <section className="container mx-auto px-4 py-16 text-center">
+          <div className="text-8xl mb-6">🎮</div>
+          <h2 className="font-display text-2xl font-bold mb-4">لا توجد ألعاب حالياً</h2>
+          <p className="text-muted-foreground">سيتم إضافة الألعاب قريباً</p>
+        </section>
+      )}
 
       {/* Stats Section */}
       <section className="container mx-auto px-4 py-16">
@@ -82,14 +96,14 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-secondary/5 to-primary/5" />
           <div className="relative z-10">
             <h2 className="font-display text-3xl md:text-4xl font-bold mb-8 gradient-text">
-              KTM Game Library
+              مكتبة KTM للألعاب
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {[
-                { value: "5000+", label: "Games Available" },
-                { value: "1M+", label: "Monthly Downloads" },
-                { value: "99%", label: "Success Rate" },
-                { value: "24/7", label: "Support" },
+                { value: `${games.length}+`, label: "لعبة متاحة" },
+                { value: "1M+", label: "تحميل شهرياً" },
+                { value: "99%", label: "نسبة النجاح" },
+                { value: "24/7", label: "دعم فني" },
               ].map((stat, index) => (
                 <div key={index} className="opacity-0 animate-scale-in" style={{ animationDelay: `${index * 0.15}s` }}>
                   <div className="font-display text-3xl md:text-4xl font-black text-primary neon-text">

@@ -1,10 +1,19 @@
 import { Link } from "react-router-dom";
-import { Download, Star, Monitor } from "lucide-react";
-import { Game } from "@/types/game";
+import { Star, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GameCardProps {
-  game: Game;
+  game: {
+    id: string;
+    title: string;
+    slug: string;
+    image: string;
+    version: string;
+    category: string;
+    size: string;
+    rating?: number | null;
+    platforms?: string[] | null;
+  };
   index?: number;
 }
 
@@ -24,6 +33,7 @@ export const GameCard = ({ game, index = 0 }: GameCardProps) => {
           alt={game.title}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           loading="lazy"
+          onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
         />
         
         {/* Overlay Gradient */}
@@ -36,7 +46,7 @@ export const GameCard = ({ game, index = 0 }: GameCardProps) => {
 
         {/* Platform Badge */}
         <div className="absolute top-3 right-3 flex gap-1">
-          {game.platforms.slice(0, 1).map((platform) => (
+          {(game.platforms || ["Windows"]).slice(0, 1).map((platform) => (
             <span key={platform} className="platform-badge flex items-center gap-1 text-[10px]">
               <Monitor className="w-3 h-3" />
               {platform}
@@ -51,14 +61,6 @@ export const GameCard = ({ game, index = 0 }: GameCardProps) => {
             <span className="text-xs font-bold">{game.rating}</span>
           </div>
         )}
-
-        {/* Download Button on Hover */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-          <div className="btn-primary flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-            <Download className="w-4 h-4" />
-            <span className="relative z-10">Download</span>
-          </div>
-        </div>
       </div>
 
       {/* Info */}

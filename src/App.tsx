@@ -9,6 +9,7 @@ import GameDetails from "./pages/GameDetails";
 import Categories from "./pages/Categories";
 import TopGames from "./pages/TopGames";
 import RecentGames from "./pages/RecentGames";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/categories" element={<Categories />} />
           <Route path="/top-games" element={<TopGames />} />
           <Route path="/recent" element={<RecentGames />} />
+          <Route path="/ktm-admin-panel" element={<Admin />} />
           {/* Game detail route - matches /game-slug-free-download */}
           <Route path="/:slug" element={<GameDetails />} />
           <Route path="*" element={<NotFound />} />
