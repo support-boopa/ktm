@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Search, Menu, X, Gamepad2, Home, Grid3X3, TrendingUp, Clock, List } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Search, Menu, X, Gamepad2, Home, Grid3X3, TrendingUp, Clock, List, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGames } from "@/hooks/useGames";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
   { href: "/games", label: "All Games", icon: List },
-  { href: "/categories", label: "Categories", icon: Grid3X3 },
   { href: "/top-games", label: "Top Games", icon: TrendingUp },
   { href: "/recent", label: "Recent", icon: Clock },
 ];
@@ -14,7 +14,32 @@ const navLinks = [
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showCategories, setShowCategories] = useState(false);
+  const [showMobileCategories, setShowMobileCategories] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { categories } = useGames();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowCategories(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/games?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+      setIsOpen(false);
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/30">
@@ -48,10 +73,60 @@ export const Navbar = () => {
                 </Link>
               );
             })}
+            
+            {/* Categories Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowCategories(!showCategories)}
+                className={cn(
+                  "nav-link flex items-center gap-2 text-sm font-medium",
+                  location.pathname.startsWith("/categories") && "active"
+                )}
+              >
+                <Grid3X3 className="w-4 h-4" />
+                Categories
+                <ChevronDown className={cn(
+                  "w-4 h-4 transition-transform duration-200",
+                  showCategories && "rotate-180"
+                )} />
+              </button>
+              
+              {showCategories && (
+                <div className="absolute top-full left-0 mt-2 w-48 glass-morphism rounded-xl border border-border/30 py-2 animate-scale-in origin-top-left">
+                  <Link
+                    to="/categories"
+                    onClick={() => setShowCategories(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary/10 hover:text-primary transition-colors"
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                    All Categories
+                  </Link>
+                  <div className="h-px bg-border/30 my-2" />
+                  <div className="max-h-64 overflow-y-auto">
+                    {categories.map((cat) => (
+                      <Link
+                        key={cat.id}
+                        to={`/categories/${cat.slug}`}
+                        onClick={() => setShowCategories(false)}
+                        className={cn(
+                          "flex items-center justify-between px-4 py-2 text-sm hover:bg-primary/10 hover:text-primary transition-colors",
+                          location.pathname === `/categories/${cat.slug}` && "text-primary bg-primary/10"
+                        )}
+                      >
+                        <span>{cat.name}</span>
+                        {cat.count > 0 && (
+                          <span className="text-xs text-muted-foreground">{cat.count}</span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Search Bar */}
-          <div className="hidden lg:flex items-center relative">
+          <form onSubmit={handleSearch} className="hidden lg:flex items-center relative">
             <Search className="absolute left-3 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
@@ -60,7 +135,7 @@ export const Navbar = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="search-input w-64 pl-10"
             />
-          </div>
+          </form>
 
           {/* Mobile Menu Button */}
           <button
@@ -75,12 +150,12 @@ export const Navbar = () => {
         <div
           className={cn(
             "md:hidden overflow-hidden transition-all duration-300",
-            isOpen ? "max-h-96 pb-4" : "max-h-0"
+            isOpen ? "max-h-[80vh] pb-4" : "max-h-0"
           )}
         >
           <div className="pt-4 space-y-2">
             {/* Mobile Search */}
-            <div className="relative mb-4">
+            <form onSubmit={handleSearch} className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
@@ -89,7 +164,7 @@ export const Navbar = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input w-full pl-10"
               />
-            </div>
+            </form>
 
             {navLinks.map((link) => {
               const Icon = link.icon;
@@ -111,6 +186,58 @@ export const Navbar = () => {
                 </Link>
               );
             })}
+
+            {/* Mobile Categories */}
+            <div>
+              <button
+                onClick={() => setShowMobileCategories(!showMobileCategories)}
+                className={cn(
+                  "w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-300",
+                  location.pathname.startsWith("/categories")
+                    ? "bg-primary/20 text-primary"
+                    : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span className="flex items-center gap-3">
+                  <Grid3X3 className="w-5 h-5" />
+                  Categories
+                </span>
+                <ChevronDown className={cn(
+                  "w-5 h-5 transition-transform duration-200",
+                  showMobileCategories && "rotate-180"
+                )} />
+              </button>
+              
+              <div className={cn(
+                "overflow-hidden transition-all duration-300",
+                showMobileCategories ? "max-h-96" : "max-h-0"
+              )}>
+                <div className="pl-8 pr-4 py-2 space-y-1">
+                  <Link
+                    to="/categories"
+                    onClick={() => { setIsOpen(false); setShowMobileCategories(false); }}
+                    className="block px-4 py-2 text-sm rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                  >
+                    All Categories
+                  </Link>
+                  {categories.map((cat) => (
+                    <Link
+                      key={cat.id}
+                      to={`/categories/${cat.slug}`}
+                      onClick={() => { setIsOpen(false); setShowMobileCategories(false); }}
+                      className={cn(
+                        "block px-4 py-2 text-sm rounded-lg transition-colors",
+                        location.pathname === `/categories/${cat.slug}`
+                          ? "bg-primary/20 text-primary"
+                          : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
