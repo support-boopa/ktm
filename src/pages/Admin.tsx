@@ -986,7 +986,7 @@ export default function Admin() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {new Date(game.updated_at || game.created_at).toLocaleDateString('ar-SA')}
+                            {new Date(game.updated_at || game.created_at).toLocaleDateString('en-GB')}
                           </span>
                         </div>
                       </div>
