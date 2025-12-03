@@ -92,15 +92,16 @@ const Index = () => {
 
       {/* Stats Section */}
       <section className="container mx-auto px-4 py-16">
-        <div className="glass-card p-8 md:p-12 text-center relative overflow-hidden">
+        <div className="glass-morphism p-8 md:p-12 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-secondary/5 to-primary/5" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] animate-pulse-glow" />
           <div className="relative z-10">
             <h2 className="font-display text-3xl md:text-4xl font-bold mb-8 gradient-text">
               مكتبة KTM للألعاب
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {[
-                { value: `${games.length}+`, label: "لعبة متاحة" },
+                { value: games.length, label: "لعبة متاحة" },
                 { value: "1M+", label: "تحميل شهرياً" },
                 { value: "99%", label: "نسبة النجاح" },
                 { value: "24/7", label: "دعم فني" },
