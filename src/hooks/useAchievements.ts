@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getUserId } from './useUserId';
 import { toast } from 'sonner';
 
 interface Achievement {
@@ -32,10 +31,29 @@ export const useAchievements = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get authenticated user ID
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const fetchAchievements = useCallback(async () => {
-    const userId = getUserId();
-    if (!userId) return;
+    if (!userId) {
+      setAchievements([]);
+      setIsLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('user_achievements')
@@ -47,14 +65,13 @@ export const useAchievements = () => {
       setAchievements(data);
     }
     setIsLoading(false);
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     fetchAchievements();
   }, [fetchAchievements]);
 
   const unlockAchievement = async (type: keyof typeof ACHIEVEMENTS) => {
-    const userId = getUserId();
     if (!userId) return false;
 
     const achievement = ACHIEVEMENTS[type];

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { useChallenges } from '@/hooks/useChallenges';
 import { toast } from 'sonner';
 import { MessageSquare, User, Send, Loader2, Trash2, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -29,6 +30,7 @@ interface GameCommentsProps {
 
 export const GameComments = ({ gameId }: GameCommentsProps) => {
   const { user, profile } = useAuth();
+  const { autoVerifyChallenges } = useChallenges();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
@@ -92,6 +94,10 @@ export const GameComments = ({ gameId }: GameCommentsProps) => {
       toast.error('حدث خطأ في إضافة التعليق');
     } else {
       toast.success('تم إضافة التعليق');
+      
+      // Auto-verify comment challenges
+      await autoVerifyChallenges('comment', { content: newComment.trim() });
+      
       setNewComment('');
       fetchComments();
     }

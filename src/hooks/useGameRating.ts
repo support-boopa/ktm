@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAchievements } from './useAchievements';
 
 interface RatingInfo {
   userRating: number | null;
@@ -16,6 +17,7 @@ export const useGameRating = (gameId: string) => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const { unlockAchievement, hasAchievement } = useAchievements();
 
   // Get authenticated user ID
   useEffect(() => {
@@ -104,6 +106,25 @@ export const useGameRating = (gameId: string) => {
     }
 
     toast.success('شكراً على تقييمك! ⭐');
+    
+    // Unlock rating achievements
+    if (!hasAchievement('rater')) {
+      unlockAchievement('rater');
+    }
+    
+    // Auto-verify challenges
+    try {
+      await supabase.functions.invoke('verify-challenge', {
+        body: { 
+          userId, 
+          challengeId: 'auto',
+          action: 'rate_games'
+        }
+      });
+    } catch (e) {
+      console.log('Challenge verification skipped');
+    }
+    
     fetchRating();
     return true;
   };
