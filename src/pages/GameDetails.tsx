@@ -10,6 +10,10 @@ import { ScreenshotGallery } from "@/components/games/ScreenshotGallery";
 import { AdditionalFiles } from "@/components/games/AdditionalFiles";
 import { addViewedGame } from "@/hooks/usePersonalizedRecommendations";
 import { GameChatbot } from "@/components/games/GameChatbot";
+import { FavoriteButton } from "@/components/games/FavoriteButton";
+import { GameRating } from "@/components/games/GameRating";
+import { useAchievements } from "@/hooks/useAchievements";
+import { useUserStats } from "@/hooks/useUserStats";
 import {
   Download,
   Star,
@@ -28,11 +32,20 @@ const GameDetails = () => {
   const { slug } = useParams();
   const { game, relatedGames, isLoading } = useGame(slug || "");
   const { incrementViews } = useGames();
+  const { unlockAchievement } = useAchievements();
+  const { incrementStat } = useUserStats();
 
   useEffect(() => {
     if (game) {
       incrementViews(game.id);
       addViewedGame(game.id);
+      incrementStat('games_viewed');
+      
+      // Check for night owl achievement
+      const hour = new Date().getHours();
+      if (hour >= 0 && hour < 5) {
+        unlockAchievement('night_owl');
+      }
     }
   }, [game?.id]);
 
@@ -139,6 +152,7 @@ const GameDetails = () => {
               </h1>
 
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-6">
+                <FavoriteButton gameId={game.id} variant="full" />
                 {game.developer && (
                   <div className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-full animate-scale-in">
                     <User className="w-4 h-4 text-primary" />
@@ -149,12 +163,12 @@ const GameDetails = () => {
                   <Eye className="w-4 h-4 text-primary" />
                   <span>{game.views.toLocaleString()} مشاهدة</span>
                 </div>
-                {game.rating && (
-                  <div className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-full animate-scale-in" style={{ animationDelay: '0.2s' }}>
-                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                    <span>{game.rating}</span>
-                  </div>
-                )}
+              </div>
+
+              {/* User Rating */}
+              <div className="mb-6 p-4 rounded-xl bg-card/30 border border-border/30">
+                <h4 className="text-sm font-medium mb-2 text-muted-foreground">قيّم هذه اللعبة</h4>
+                <GameRating gameId={game.id} size="lg" />
               </div>
 
               <div className="text-muted-foreground leading-relaxed mb-8 text-lg">

@@ -68,6 +68,38 @@ export type Database = {
         }
         Relationships: []
       }
+      game_ratings: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_ratings_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_requests: {
         Row: {
           created_at: string
@@ -203,11 +235,144 @@ export type Database = {
         }
         Relationships: []
       }
+      site_announcements: {
+        Row: {
+          content: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          title: string
+          type: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          title: string
+          type?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_icon: string
+          achievement_name: string
+          achievement_type: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_icon: string
+          achievement_name: string
+          achievement_type: string
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_icon?: string
+          achievement_name?: string
+          achievement_type?: string
+          id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_favorites: {
+        Row: {
+          collection_name: string | null
+          created_at: string
+          game_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          collection_name?: string | null
+          created_at?: string
+          game_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          collection_name?: string | null
+          created_at?: string
+          game_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_stats: {
+        Row: {
+          chat_messages_sent: number | null
+          favorites_count: number | null
+          first_visit: string
+          games_downloaded: number | null
+          games_viewed: number | null
+          id: string
+          last_visit: string
+          longest_streak: number | null
+          streak_days: number | null
+          total_time_spent: number | null
+          user_id: string
+        }
+        Insert: {
+          chat_messages_sent?: number | null
+          favorites_count?: number | null
+          first_visit?: string
+          games_downloaded?: number | null
+          games_viewed?: number | null
+          id?: string
+          last_visit?: string
+          longest_streak?: number | null
+          streak_days?: number | null
+          total_time_spent?: number | null
+          user_id: string
+        }
+        Update: {
+          chat_messages_sent?: number | null
+          favorites_count?: number | null
+          first_visit?: string
+          games_downloaded?: number | null
+          games_viewed?: number | null
+          id?: string
+          last_visit?: string
+          longest_streak?: number | null
+          streak_days?: number | null
+          total_time_spent?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_game_average_rating: { Args: { game_uuid: string }; Returns: number }
+      get_game_rating_count: { Args: { game_uuid: string }; Returns: number }
       increment_views: { Args: { game_id: string }; Returns: undefined }
     }
     Enums: {
