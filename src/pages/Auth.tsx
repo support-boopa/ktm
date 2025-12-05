@@ -32,7 +32,7 @@ const signupSchema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, signUp, signIn } = useAuth();
+  const { user, signUp, signIn, completeSignIn, cancelTOTPVerification } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -198,10 +198,7 @@ const Auth = () => {
     
     if (isValid) {
       // Re-sign in now that TOTP is verified
-      const { error } = await supabase.auth.signInWithPassword({
-        email: pendingLoginEmail,
-        password: pendingLoginPassword,
-      });
+      const { error } = await completeSignIn(pendingLoginEmail, pendingLoginPassword);
       
       if (error) {
         toast.error('حدث خطأ في تسجيل الدخول');
@@ -219,7 +216,8 @@ const Auth = () => {
     setLoading(false);
   };
 
-  const handleCancel2FALogin = async () => {
+  const handleCancel2FALogin = () => {
+    cancelTOTPVerification();
     setShow2FALogin(false);
     setLoginOtpCode('');
     setLoginTotpSecret('');
