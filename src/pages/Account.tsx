@@ -108,7 +108,7 @@ const Account = () => {
         secret: OTPAuth.Secret.fromBase32(totpSecret),
       });
 
-      const isValid = totp.validate({ token: verificationCode, window: 1 }) !== null;
+      const isValid = totp.validate({ token: verificationCode, window: 2 }) !== null;
 
       if (isValid) {
         const { error } = await enableTOTP(totpSecret);
