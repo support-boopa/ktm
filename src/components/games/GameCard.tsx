@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Star, Monitor } from "lucide-react";
+import { Star, Sparkles, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GameCardProps {
@@ -13,11 +13,41 @@ interface GameCardProps {
     size: string;
     rating?: number | null;
     platforms?: string[] | null;
+    created_at?: string;
+    updated_at?: string;
   };
   index?: number;
 }
 
+// Check if game was added within last 24 hours
+const isNewGame = (createdAt?: string) => {
+  if (!createdAt) return false;
+  const created = new Date(createdAt);
+  const now = new Date();
+  const hoursDiff = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+  return hoursDiff <= 24;
+};
+
+// Check if game was updated within last week
+const isRecentlyUpdated = (updatedAt?: string, createdAt?: string) => {
+  if (!updatedAt || !createdAt) return false;
+  // Don't show "updated" tag if it's a new game
+  if (isNewGame(createdAt)) return false;
+  
+  const updated = new Date(updatedAt);
+  const created = new Date(createdAt);
+  // Only show if updated after creation
+  if (updated.getTime() <= created.getTime()) return false;
+  
+  const now = new Date();
+  const daysDiff = (now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24);
+  return daysDiff <= 7;
+};
+
 export const GameCard = ({ game, index = 0 }: GameCardProps) => {
+  const isNew = isNewGame(game.created_at);
+  const isUpdated = isRecentlyUpdated(game.updated_at, game.created_at);
+
   return (
     <Link
       to={`/${game.slug}`}
@@ -44,14 +74,20 @@ export const GameCard = ({ game, index = 0 }: GameCardProps) => {
           <span className="version-badge text-[10px]">{game.version}</span>
         </div>
 
-        {/* Platform Badge */}
-        <div className="absolute top-3 right-3 flex gap-1">
-          {(game.platforms || ["Windows"]).slice(0, 1).map((platform) => (
-            <span key={platform} className="platform-badge flex items-center gap-1 text-[10px]">
-              <Monitor className="w-3 h-3" />
-              {platform}
+        {/* New/Updated Tags */}
+        <div className="absolute top-3 right-3 flex flex-col gap-1">
+          {isNew && (
+            <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-green-500/90 text-white backdrop-blur-sm font-bold animate-pulse">
+              <Sparkles className="w-3 h-3" />
+              جديد
             </span>
-          ))}
+          )}
+          {isUpdated && (
+            <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-blue-500/90 text-white backdrop-blur-sm font-bold">
+              <RefreshCw className="w-3 h-3" />
+              محدث
+            </span>
+          )}
         </div>
 
         {/* Rating */}

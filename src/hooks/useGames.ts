@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Game {
@@ -35,6 +35,7 @@ export interface Game {
   views: number;
   platforms: string[] | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Category {
@@ -45,17 +46,14 @@ export interface Category {
   count: number;
 }
 
+const VIEWED_GAMES_KEY = "ktm_viewed_games";
+
 export function useGames() {
   const [games, setGames] = useState<Game[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchGames();
-    fetchCategories();
-  }, []);
-
-  const fetchGames = async () => {
+  const fetchGames = useCallback(async () => {
     const { data, error } = await supabase
       .from("games")
       .select("*")
@@ -65,9 +63,9 @@ export function useGames() {
       setGames(data as unknown as Game[]);
     }
     setIsLoading(false);
-  };
+  }, []);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     const { data, error } = await supabase
       .from("categories")
       .select("*")
@@ -76,11 +74,41 @@ export function useGames() {
     if (!error && data) {
       setCategories(data);
     }
-  };
+  }, []);
 
-  const incrementViews = async (gameId: string) => {
+  useEffect(() => {
+    fetchGames();
+    fetchCategories();
+
+    // Subscribe to real-time updates for views
+    const channel = supabase
+      .channel('games-views')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'games'
+        },
+        (payload) => {
+          const updatedGame = payload.new as Game;
+          setGames(prevGames => 
+            prevGames.map(g => 
+              g.id === updatedGame.id ? { ...g, views: updatedGame.views } : g
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchGames, fetchCategories]);
+
+  const incrementViews = useCallback(async (gameId: string) => {
     // Check if already viewed in localStorage
-    const viewedGames: string[] = JSON.parse(localStorage.getItem("ktm_viewed_games") || "[]");
+    const viewedGames: string[] = JSON.parse(localStorage.getItem(VIEWED_GAMES_KEY) || "[]");
     
     if (viewedGames.includes(gameId)) {
       return; // Already viewed, don't increment
@@ -88,37 +116,25 @@ export function useGames() {
 
     // Mark as viewed in localStorage immediately
     viewedGames.push(gameId);
-    localStorage.setItem("ktm_viewed_games", JSON.stringify(viewedGames));
+    localStorage.setItem(VIEWED_GAMES_KEY, JSON.stringify(viewedGames));
 
-    // Increment in database
+    // Use RPC function for atomic increment
     try {
-      // Get current views
-      const { data: game } = await supabase
-        .from("games")
-        .select("views")
-        .eq("id", gameId)
-        .single();
+      await supabase.rpc('increment_views', { game_id: gameId });
       
-      if (game) {
-        const newViews = (game.views || 0) + 1;
-        
-        // Update in database
-        await supabase
-          .from("games")
-          .update({ views: newViews })
-          .eq("id", gameId);
-
-        // Update local state
-        setGames(prevGames => 
-          prevGames.map(g => 
-            g.id === gameId ? { ...g, views: newViews } : g
-          )
-        );
-      }
+      // Update local state optimistically
+      setGames(prevGames => 
+        prevGames.map(g => 
+          g.id === gameId ? { ...g, views: g.views + 1 } : g
+        )
+      );
     } catch (error) {
       console.error("Error incrementing views:", error);
+      // Revert localStorage on error
+      const revertedGames = viewedGames.filter(id => id !== gameId);
+      localStorage.setItem(VIEWED_GAMES_KEY, JSON.stringify(revertedGames));
     }
-  };
+  }, []);
 
   return { games, categories, isLoading, incrementViews, refetch: fetchGames };
 }
@@ -133,6 +149,32 @@ export function useGame(slug: string) {
       fetchGame();
     }
   }, [slug]);
+
+  // Subscribe to real-time view updates for this specific game
+  useEffect(() => {
+    if (!game?.id) return;
+
+    const channel = supabase
+      .channel(`game-${game.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'games',
+          filter: `id=eq.${game.id}`
+        },
+        (payload) => {
+          const updatedGame = payload.new as Game;
+          setGame(prev => prev ? { ...prev, views: updatedGame.views } : null);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [game?.id]);
 
   const fetchGame = async () => {
     setIsLoading(true);
