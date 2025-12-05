@@ -4,6 +4,7 @@ import { HeroCarousel } from "@/components/games/HeroCarousel";
 import { GameCard } from "@/components/games/GameCard";
 import { CategoryCard } from "@/components/games/CategoryCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { RecommendedGames } from "@/components/games/RecommendedGames";
 import { useGames } from "@/hooks/useGames";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Zap, Shield, Clock, Loader2 } from "lucide-react";
@@ -58,21 +59,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Categories */}
-      {categories.length > 0 && (
-        <section className="container mx-auto px-4 py-8">
-          <SectionHeader
-            title="التصنيفات"
-            subtitle="تصفح حسب النوع"
-            href="/categories"
-          />
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-            {categories.map((category, index) => (
-              <CategoryCard key={category.id} category={category} index={index} />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Personalized Recommendations */}
+      <RecommendedGames />
 
       {/* Recently Added */}
       {recentGames.length > 0 && (
@@ -101,6 +89,22 @@ const Index = () => {
               </Button>
             </div>
           )}
+        </section>
+      )}
+
+      {/* Categories - Moved below Recent Games */}
+      {categories.length > 0 && (
+        <section className="container mx-auto px-4 py-8">
+          <SectionHeader
+            title="التصنيفات"
+            subtitle="تصفح حسب النوع"
+            href="/categories"
+          />
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+            {categories.map((category, index) => (
+              <CategoryCard key={category.id} category={category} index={index} />
+            ))}
+          </div>
         </section>
       )}
 

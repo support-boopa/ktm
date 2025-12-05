@@ -104,8 +104,15 @@ export const GameCard = ({ game, index = 0 }: GameCardProps) => {
         <h3 className="font-display font-bold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-2">
           {game.title} Free Download
         </h3>
-        <div className="flex items-center justify-between">
-          <span className="category-badge text-[10px]">{game.category}</span>
+        <div className="flex flex-col gap-2">
+          {/* All Categories */}
+          <div className="flex flex-wrap gap-1">
+            {game.category.split(",").map((cat, idx) => (
+              <span key={idx} className="category-badge text-[10px]">
+                {cat.trim()}
+              </span>
+            ))}
+          </div>
           <span className="text-xs text-muted-foreground">{game.size}</span>
         </div>
       </div>
