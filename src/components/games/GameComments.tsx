@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
-import { useChallenges } from '@/hooks/useChallenges';
 import { toast } from 'sonner';
 import { MessageSquare, User, Send, Loader2, Trash2, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -30,7 +29,6 @@ interface GameCommentsProps {
 
 export const GameComments = ({ gameId }: GameCommentsProps) => {
   const { user, profile } = useAuth();
-  const { autoVerifyChallenges } = useChallenges();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
@@ -95,8 +93,26 @@ export const GameComments = ({ gameId }: GameCommentsProps) => {
     } else {
       toast.success('تم إضافة التعليق');
       
-      // Auto-verify comment challenges
-      await autoVerifyChallenges('comment', { content: newComment.trim() });
+      // Auto-verify comment challenges directly via edge function
+      try {
+        const { data: verifyData } = await supabase.functions.invoke('verify-challenge', {
+          body: { 
+            userId: user.id, 
+            challengeId: 'auto',
+            action: 'comment',
+            actionData: { content: newComment.trim() }
+          }
+        });
+        
+        if (verifyData?.verified) {
+          toast.success('🎉 تم إنجاز التحدي!', {
+            description: verifyData.message,
+            duration: 5000
+          });
+        }
+      } catch (e) {
+        console.log('Challenge verification skipped');
+      }
       
       setNewComment('');
       fetchComments();

@@ -130,22 +130,43 @@ async function verifySingleChallenge(
     const requiredText = verificationData.required_text?.toLowerCase() || "";
     const commentText = actionData.content.toLowerCase();
     
-    // Also check if challenge_text contains the required comment
-    const challengeTextMatch = challenge.challenge_text?.match(/["""']([^"""']+)["""']/);
-    const alternateRequired = challengeTextMatch?.[1]?.toLowerCase() || "";
+    // Extract required text from challenge_text (look for text in quotes)
+    const quotePatterns = [
+      /["""']([^"""']+)["""']/,  // Arabic/English quotes
+      /يقول[:\s]*["""']?([^"""']+)["""']?/,  // After "يقول"
+      /يحتوي على[:\s]*["""']?([^"""']+)["""']?/  // After "يحتوي على"
+    ];
     
+    let alternateRequired = "";
+    for (const pattern of quotePatterns) {
+      const match = challenge.challenge_text?.match(pattern);
+      if (match?.[1]) {
+        alternateRequired = match[1].toLowerCase().trim();
+        break;
+      }
+    }
+    
+    console.log("Comment verification:", {
+      commentText,
+      requiredText,
+      alternateRequired,
+      challengeText: challenge.challenge_text
+    });
+    
+    // Check if comment contains required text
     if ((requiredText && commentText.includes(requiredText)) || 
         (alternateRequired && commentText.includes(alternateRequired))) {
       verified = true;
-      message = "تم التحقق من التعليق بنجاح!";
+      message = "تم التحقق من التعليق بنجاح! 🎉";
     } else {
       // Check for partial match or similar content
       const textToMatch = requiredText || alternateRequired;
       if (textToMatch) {
         const similarity = calculateSimilarity(textToMatch, commentText);
-        if (similarity > 0.5) {
+        console.log("Similarity score:", similarity);
+        if (similarity > 0.4) {
           verified = true;
-          message = "تم قبول التعليق!";
+          message = "تم قبول التعليق! 🎉";
         }
       }
     }
