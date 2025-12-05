@@ -11,10 +11,12 @@ import { toast } from "sonner";
 import { 
   Lock, Plus, Trash2, Edit, LogOut, Gamepad2, Search, 
   ChevronLeft, ChevronRight, Eye, BarChart3,
-  Star, X, Mail, Bug, MessageSquare
+  Star, X, Mail, Bug, MessageSquare, Image, FolderOpen
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { MultiImageUpload } from "@/components/admin/MultiImageUpload";
+import { FileUpload, AdditionalFile } from "@/components/admin/FileUpload";
 import { RichTextEditor, parseRichText } from "@/components/admin/RichTextEditor";
 
 interface GameForm {
@@ -30,6 +32,8 @@ interface GameForm {
   genre: string;
   rating: string;
   download_link: string;
+  screenshots: string[];
+  additional_files: AdditionalFile[];
   system_requirements_minimum: {
     os: string;
     processor: string;
@@ -59,6 +63,8 @@ const initialForm: GameForm = {
   genre: "",
   rating: "4.5",
   download_link: "",
+  screenshots: [],
+  additional_files: [],
   system_requirements_minimum: {
     os: "Windows 10",
     processor: "",
@@ -255,6 +261,8 @@ export default function Admin() {
         genre: form.genre || null,
         rating: parseFloat(form.rating) || 4.5,
         download_link: form.download_link || null,
+        screenshots: form.screenshots.length > 0 ? form.screenshots : null,
+        additional_files: form.additional_files.length > 0 ? form.additional_files : null,
         system_requirements_minimum: form.system_requirements_minimum,
         system_requirements_recommended: form.system_requirements_recommended,
       };
@@ -300,6 +308,8 @@ export default function Admin() {
       genre: game.genre || game.category || "",
       rating: String(game.rating || 4.5),
       download_link: game.download_link || "",
+      screenshots: game.screenshots || [],
+      additional_files: game.additional_files || [],
       system_requirements_minimum: game.system_requirements_minimum || initialForm.system_requirements_minimum,
       system_requirements_recommended: game.system_requirements_recommended || initialForm.system_requirements_recommended,
     });
@@ -610,6 +620,21 @@ export default function Admin() {
                             rows={8}
                           />
                         </div>
+
+                        {/* Screenshots */}
+                        <div className="pt-2">
+                          <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                            <Image className="w-4 h-4 text-primary" />
+                            صور من داخل اللعبة (اختياري - حد أقصى 10)
+                          </h4>
+                          <MultiImageUpload
+                            values={form.screenshots}
+                            onChange={(urls) => setForm({ ...form, screenshots: urls })}
+                            label=""
+                            maxImages={10}
+                          />
+                        </div>
+
                         <div>
                           <Label htmlFor="features">الميزات (كل ميزة في سطر)</Label>
                           <Textarea
@@ -752,6 +777,21 @@ export default function Admin() {
                             />
                           </div>
                         </div>
+                      </div>
+
+                      {/* Additional Files */}
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-lg border-b border-border/50 pb-2 flex items-center gap-2">
+                          <span className="w-2 h-2 bg-secondary rounded-full animate-pulse" />
+                          <FolderOpen className="w-4 h-4" />
+                          الملفات الإضافية (اختياري)
+                        </h3>
+                        <FileUpload
+                          values={form.additional_files}
+                          onChange={(files) => setForm({ ...form, additional_files: files })}
+                          label="ملفات مهمة للعبة (حد أقصى 10)"
+                          maxFiles={10}
+                        />
                       </div>
 
                       {/* Download Link */}

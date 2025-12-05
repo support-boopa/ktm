@@ -29,6 +29,7 @@ export interface Game {
   } | null;
   download_link: string | null;
   screenshots: string[] | null;
+  additional_files: { name: string; url: string; size: number }[] | null;
   developer: string | null;
   genre: string | null;
   rating: number | null;
