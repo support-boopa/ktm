@@ -160,13 +160,34 @@ export const useChallenges = () => {
   const autoVerifyChallenges = useCallback(async (action: string, actionData?: Record<string, any>) => {
     if (!userId || challenges.length === 0) return;
 
-    // Find incomplete challenges that match the action type
-    const matchingChallenges = challenges.filter(c => 
-      !c.is_completed && c.challenge_type === action
-    );
+    // Find incomplete challenges that might match the action
+    const incompleteChallenges = challenges.filter(c => !c.is_completed);
 
-    for (const challenge of matchingChallenges) {
-      await verifyChallenge(challenge.id, action, actionData);
+    for (const challenge of incompleteChallenges) {
+      // Check if the action is relevant to this challenge type
+      const challengeType = challenge.challenge_type?.toLowerCase();
+      const actionLower = action.toLowerCase();
+      
+      // Match comment action to comment challenges
+      if (actionLower === 'comment' && (challengeType === 'comment' || challenge.challenge_text?.includes('تعليق') || challenge.challenge_text?.includes('اكتب'))) {
+        await verifyChallenge(challenge.id, action, actionData);
+      }
+      // Match rating action
+      else if (actionLower === 'rate' && (challengeType === 'rate_games' || challenge.challenge_text?.includes('قيّم') || challenge.challenge_text?.includes('تقييم'))) {
+        await verifyChallenge(challenge.id, action, actionData);
+      }
+      // Match favorites action
+      else if (actionLower === 'favorite' && (challengeType === 'add_favorites' || challenge.challenge_text?.includes('مفضل'))) {
+        await verifyChallenge(challenge.id, action, actionData);
+      }
+      // Match avatar action
+      else if (actionLower === 'avatar_change' && (challengeType === 'avatar_change' || challenge.challenge_text?.includes('صورة') || challenge.challenge_text?.includes('أفتار'))) {
+        await verifyChallenge(challenge.id, action, actionData);
+      }
+      // Direct type match
+      else if (challengeType === action) {
+        await verifyChallenge(challenge.id, action, actionData);
+      }
     }
   }, [userId, challenges, verifyChallenge]);
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAchievements } from './useAchievements';
 
 interface Favorite {
   id: string;
@@ -13,6 +14,7 @@ export const useFavorites = () => {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const { unlockAchievement, hasAchievement } = useAchievements();
 
   // Get authenticated user ID
   useEffect(() => {
@@ -72,7 +74,33 @@ export const useFavorites = () => {
     }
 
     toast.success('تمت الإضافة للمفضلة ⭐');
+    
+    // Unlock achievements
+    if (!hasAchievement('first_favorite')) {
+      unlockAchievement('first_favorite');
+    }
+    
     fetchFavorites();
+    
+    // Check for collector achievement (10 favorites)
+    const newCount = favorites.length + 1;
+    if (newCount >= 10 && !hasAchievement('collector')) {
+      unlockAchievement('collector');
+    }
+    
+    // Auto-verify challenges
+    try {
+      await supabase.functions.invoke('verify-challenge', {
+        body: { 
+          userId, 
+          challengeId: 'auto', // Special flag for auto-checking all challenges
+          action: 'add_favorites'
+        }
+      });
+    } catch (e) {
+      console.log('Challenge verification skipped');
+    }
+    
     return true;
   };
 
