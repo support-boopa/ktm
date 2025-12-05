@@ -8,6 +8,7 @@ import { useGame, useGames } from "@/hooks/useGames";
 import { parseRichText } from "@/components/admin/RichTextEditor";
 import { ScreenshotGallery } from "@/components/games/ScreenshotGallery";
 import { AdditionalFiles } from "@/components/games/AdditionalFiles";
+import { addViewedGame } from "@/hooks/usePersonalizedRecommendations";
 import {
   Download,
   Star,
@@ -30,6 +31,7 @@ const GameDetails = () => {
   useEffect(() => {
     if (game) {
       incrementViews(game.id);
+      addViewedGame(game.id);
     }
   }, [game?.id]);
 
