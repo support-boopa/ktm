@@ -47,16 +47,18 @@ serve(async (req) => {
       }
 
       let anyVerified = false;
+      let verifiedMessage = "";
       for (const challenge of challenges) {
         const result = await verifySingleChallenge(supabase, LOVABLE_API_KEY, userId, challenge, action, actionData);
         if (result.verified) {
           anyVerified = true;
+          verifiedMessage = result.message;
         }
       }
 
       return new Response(JSON.stringify({ 
         verified: anyVerified, 
-        message: anyVerified ? "تم إنجاز التحدي!" : "لم يتم التحقق بعد" 
+        message: anyVerified ? verifiedMessage : "لم يتم التحقق بعد" 
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -123,7 +125,19 @@ async function verifySingleChallenge(
   const isCommentChallenge = challengeType === "comment" || challengeText.includes("تعليق") || challengeText.includes("اكتب");
   const isRatingChallenge = challengeType === "rate_games" || challengeText.includes("قيّم") || challengeText.includes("تقييم");
   const isFavoritesChallenge = challengeType === "add_favorites" || challengeText.includes("مفضل");
-  const isAvatarChallenge = challengeType === "avatar_change" || challengeText.includes("صورة") || challengeText.includes("أفتار");
+  const isAvatarChallenge = challengeType === "avatar_change" || challengeText.includes("صورة") || challengeText.includes("أفتار") || challengeText.includes("افتار");
+  const isNameChallenge = challengeType === "change_name" || challengeText.includes("اسمك الأول") || challengeText.includes("غيّر اسمك");
+
+  console.log("Challenge analysis:", { 
+    challengeType, 
+    action, 
+    isCommentChallenge, 
+    isRatingChallenge, 
+    isFavoritesChallenge, 
+    isAvatarChallenge,
+    isNameChallenge,
+    verificationData
+  });
 
   // Comment challenge verification
   if (action === "comment" && isCommentChallenge && actionData?.content) {
@@ -202,49 +216,128 @@ async function verifySingleChallenge(
 
   // Avatar change verification
   if (action === "avatar_change" && isAvatarChallenge && actionData?.avatarUrl && LOVABLE_API_KEY) {
-    const avatarDescription = verificationData.avatar_description || "";
+    // Get avatar description from challenge
+    let avatarDescription = verificationData.avatar_description || "";
     
-    try {
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: `هل هذه الصورة تطابق الوصف التالي بنسبة 70% أو أكثر؟
-الوصف المطلوب: "${avatarDescription}"
-
-أجب بـ "نعم" أو "لا" فقط.`
-                },
-                {
-                  type: "image_url",
-                  image_url: { url: actionData.avatarUrl }
-                }
-              ]
-            }
-          ],
-        }),
-      });
-
-      if (aiResponse.ok) {
-        const aiData = await aiResponse.json();
-        const response = aiData.choices?.[0]?.message?.content?.toLowerCase() || "";
-        
-        if (response.includes("نعم") || response.includes("yes")) {
-          verified = true;
-          message = "تم التحقق من صورة الأفتار!";
+    // Also try to extract from challenge text
+    if (!avatarDescription) {
+      const descMatch = challenge.challenge_text?.match(/صورة\s+([^🐧🐼🐱🦊🐻🐯🦁🐮🐷🐸🐵🐔🐧🐦🐤🐣🦆🦅🦉🦇🐺🐗🐴🦄🐝🐛🦋🐌🐞🐜🦟]+)/i);
+      if (descMatch) {
+        avatarDescription = descMatch[1].trim();
+      } else {
+        // Extract everything after "صورة" or "أفتار"
+        const afterKeyword = challenge.challenge_text?.match(/(صورة|أفتار|افتار)\s*[^\s]*\s*(.+)/i);
+        if (afterKeyword) {
+          avatarDescription = afterKeyword[2].trim();
         }
       }
-    } catch (e) {
-      console.error("AI verification error:", e);
+    }
+    
+    console.log("Avatar verification:", { avatarDescription, avatarUrl: actionData.avatarUrl });
+    
+    if (avatarDescription) {
+      try {
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: `انظر لهذه الصورة وحدد هل تطابق الوصف التالي بنسبة 60% أو أكثر:
+"${avatarDescription}"
+
+التحدي الكامل: "${challenge.challenge_text}"
+
+أجب بكلمة واحدة فقط: "نعم" إذا الصورة تطابق الوصف، أو "لا" إذا لا تطابق.`
+                  },
+                  {
+                    type: "image_url",
+                    image_url: { url: actionData.avatarUrl }
+                  }
+                ]
+              }
+            ],
+          }),
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          const response = aiData.choices?.[0]?.message?.content?.toLowerCase() || "";
+          console.log("AI avatar response:", response);
+          
+          if (response.includes("نعم") || response.includes("yes")) {
+            verified = true;
+            message = "تم التحقق من صورة الأفتار! 🎉";
+          }
+        } else {
+          console.error("AI response error:", await aiResponse.text());
+        }
+      } catch (e) {
+        console.error("AI verification error:", e);
+      }
+    }
+  }
+
+  // Name change verification
+  if (action === "change_name" && isNameChallenge && actionData) {
+    const requiredFirstName = verificationData.required_first_name?.toLowerCase() || "";
+    const requiredLastName = verificationData.required_last_name?.toLowerCase() || "";
+    const userFirstName = actionData.firstName?.toLowerCase() || "";
+    const userLastName = actionData.lastName?.toLowerCase() || "";
+    
+    // Extract names from challenge text if not in verification_data
+    let extractedFirstName = requiredFirstName;
+    let extractedLastName = requiredLastName;
+    
+    if (!extractedFirstName) {
+      const firstNameMatch = challenge.challenge_text?.match(/اسمك الأول\s*(إلى|الى|ل)\s*["""']?([^"""'،,]+)["""']?/i);
+      if (firstNameMatch) {
+        extractedFirstName = firstNameMatch[2].trim().toLowerCase();
+      }
+    }
+    
+    if (!extractedLastName) {
+      const lastNameMatch = challenge.challenge_text?.match(/اسمك الأخير\s*(إلى|الى|ل)\s*["""']?([^"""'،,🐧🐼💃✈️🍌🧆🌌]+)["""']?/i);
+      if (lastNameMatch) {
+        extractedLastName = lastNameMatch[2].trim().toLowerCase();
+      }
+    }
+    
+    console.log("Name verification:", {
+      userFirstName,
+      userLastName,
+      extractedFirstName,
+      extractedLastName,
+      challengeText: challenge.challenge_text
+    });
+    
+    // Check if names match
+    const firstNameMatches = extractedFirstName && userFirstName.includes(extractedFirstName);
+    const lastNameMatches = extractedLastName && userLastName.includes(extractedLastName);
+    
+    // Also check similarity
+    const firstSimilarity = calculateSimilarity(extractedFirstName, userFirstName);
+    const lastSimilarity = calculateSimilarity(extractedLastName, userLastName);
+    
+    if ((firstNameMatches || firstSimilarity > 0.6) && (lastNameMatches || lastSimilarity > 0.6)) {
+      verified = true;
+      message = "تم التحقق من تغيير الاسم! 🎉";
+    } else if (firstNameMatches || firstSimilarity > 0.6) {
+      // Only first name matches
+      verified = false;
+      message = "الاسم الأول صحيح، تحقق من الاسم الأخير";
+    } else if (lastNameMatches || lastSimilarity > 0.6) {
+      // Only last name matches
+      verified = false;
+      message = "الاسم الأخير صحيح، تحقق من الاسم الأول";
     }
   }
 

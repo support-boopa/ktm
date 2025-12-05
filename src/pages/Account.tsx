@@ -352,6 +352,38 @@ const Account = () => {
           setDaysUntilChange(7);
         }
         await refreshProfile();
+        
+        // Verify avatar challenge if avatar was changed
+        if (avatarFile && newAvatarUrl && user) {
+          try {
+            await supabase.functions.invoke('verify-challenge', {
+              body: { 
+                userId: user.id, 
+                challengeId: 'auto', 
+                action: 'avatar_change',
+                actionData: { avatarUrl: newAvatarUrl }
+              }
+            });
+          } catch (e) {
+            console.log('Avatar challenge verification attempted');
+          }
+        }
+        
+        // Verify name change challenge if name was changed
+        if (user) {
+          try {
+            await supabase.functions.invoke('verify-challenge', {
+              body: { 
+                userId: user.id, 
+                challengeId: 'auto', 
+                action: 'change_name',
+                actionData: { firstName, lastName }
+              }
+            });
+          } catch (e) {
+            console.log('Name challenge verification attempted');
+          }
+        }
       }
     } catch (err) {
       toast.error('حدث خطأ غير متوقع');
