@@ -22,6 +22,8 @@ export interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, username: string, firstName: string, lastName?: string) => Promise<{ error: any; userId?: string }>;
   signIn: (email: string, password: string) => Promise<{ error: any; needsTOTP?: boolean; totpSecret?: string; userEmail?: string; userPassword?: string }>;
+  completeSignIn: (email: string, password: string) => Promise<{ error: any }>;
+  cancelTOTPVerification: () => void;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
@@ -38,6 +40,8 @@ export const AuthContext = createContext<AuthContextType>({
   loading: true,
   signUp: async () => ({ error: null }),
   signIn: async () => ({ error: null }),
+  completeSignIn: async () => ({ error: null }),
+  cancelTOTPVerification: () => {},
   signOut: async () => {},
   updateProfile: async () => ({ error: null }),
   updatePassword: async () => ({ error: null }),
@@ -56,6 +60,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [skipAuthUpdate, setSkipAuthUpdate] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -86,6 +91,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
+        // Skip updating user state if we're in the middle of TOTP verification
+        if (skipAuthUpdate) {
+          setLoading(false);
+          return;
+        }
+        
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
@@ -102,17 +113,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      setSession(existingSession);
-      setUser(existingSession?.user ?? null);
-      
-      if (existingSession?.user) {
-        fetchProfile(existingSession.user.id).then(setProfile);
+      if (!skipAuthUpdate) {
+        setSession(existingSession);
+        setUser(existingSession?.user ?? null);
+        
+        if (existingSession?.user) {
+          fetchProfile(existingSession.user.id).then(setProfile);
+        }
       }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [skipAuthUpdate]);
 
   const signUp = async (email: string, password: string, username: string, firstName: string, lastName?: string) => {
     const { data, error } = await supabase.auth.signUp({
@@ -146,6 +159,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signIn = async (email: string, password: string) => {
+    // Set flag to prevent onAuthStateChange from updating user during TOTP check
+    setSkipAuthUpdate(true);
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setSkipAuthUpdate(false);
+      return { error };
+    }
+
+    if (data.user) {
+      const profileData = await fetchProfile(data.user.id);
+      
+      if (profileData?.totp_enabled && profileData?.totp_secret) {
+        // Sign out immediately - user must complete 2FA first
+        await supabase.auth.signOut();
+        // Keep skipAuthUpdate true - it will be reset when Auth.tsx calls completeSignIn or cancels
+        return { error: null, needsTOTP: true, totpSecret: profileData.totp_secret, userEmail: email, userPassword: password };
+      }
+      
+      // No TOTP required, allow normal auth flow
+      setSkipAuthUpdate(false);
+      setUser(data.user);
+      setSession(data.session);
+      setProfile(profileData);
+    }
+
+    return { error: null };
+  };
+  
+  const completeSignIn = async (email: string, password: string) => {
+    setSkipAuthUpdate(false);
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -155,20 +204,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (data.user) {
       const profileData = await fetchProfile(data.user.id);
-      
-      if (profileData?.totp_enabled && profileData?.totp_secret) {
-        // Sign out immediately - user must complete 2FA first
-        await supabase.auth.signOut();
-        setUser(null);
-        setSession(null);
-        setProfile(null);
-        return { error: null, needsTOTP: true, totpSecret: profileData.totp_secret, userEmail: email, userPassword: password };
-      }
-      
+      setUser(data.user);
+      setSession(data.session);
       setProfile(profileData);
     }
 
     return { error: null };
+  };
+  
+  const cancelTOTPVerification = () => {
+    setSkipAuthUpdate(false);
   };
 
   const signOut = async () => {
@@ -246,6 +291,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     signUp,
     signIn,
+    completeSignIn,
+    cancelTOTPVerification,
     signOut,
     updateProfile,
     updatePassword,
