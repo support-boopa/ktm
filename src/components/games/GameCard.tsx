@@ -11,6 +11,7 @@ interface GameCardProps {
     image: string;
     version: string;
     category: string;
+    genre?: string | null;
     size: string;
     rating?: number | null;
     platforms?: string[] | null;
@@ -70,11 +71,6 @@ export const GameCard = ({ game, index = 0 }: GameCardProps) => {
         {/* Overlay Gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent opacity-60" />
         
-        {/* Version Badge */}
-        <div className="absolute top-3 left-3">
-          <span className="version-badge text-[10px]">{game.version}</span>
-        </div>
-
         {/* Favorite Button */}
         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
           <FavoriteButton gameId={game.id} />
@@ -111,9 +107,9 @@ export const GameCard = ({ game, index = 0 }: GameCardProps) => {
           {game.title} Free Download
         </h3>
         <div className="flex flex-col gap-2">
-          {/* All Categories */}
+          {/* All Genres/Categories */}
           <div className="flex flex-wrap gap-1">
-            {game.category.split(",").map((cat, idx) => (
+            {(game.genre || game.category).split(",").map((cat, idx) => (
               <span key={idx} className="category-badge text-[10px]">
                 {cat.trim()}
               </span>
