@@ -17,6 +17,8 @@ import FAQ from "./pages/FAQ";
 import HowToDownload from "./pages/HowToDownload";
 import ContactUs from "./pages/ContactUs";
 import ReportIssue from "./pages/ReportIssue";
+import Profile from "./pages/Profile";
+import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +64,8 @@ const App = () => {
             <Route path="/how-to-download" element={<HowToDownload />} />
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/report-issue" element={<ReportIssue />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/favorites" element={<Favorites />} />
             <Route path="/ktm-admin-panel" element={<Admin />} />
             {/* Game detail route - matches /game-slug-free-download */}
             <Route path="/:slug" element={<GameDetails />} />

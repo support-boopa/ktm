@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Star, Sparkles, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FavoriteButton } from "./FavoriteButton";
 
 interface GameCardProps {
   game: {
@@ -52,7 +53,7 @@ export const GameCard = ({ game, index = 0 }: GameCardProps) => {
     <Link
       to={`/${game.slug}`}
       className={cn(
-        "game-card group block opacity-0 animate-slide-up",
+        "game-card group block opacity-0 animate-slide-up relative",
         `stagger-${(index % 6) + 1}`
       )}
     >
@@ -74,8 +75,13 @@ export const GameCard = ({ game, index = 0 }: GameCardProps) => {
           <span className="version-badge text-[10px]">{game.version}</span>
         </div>
 
+        {/* Favorite Button */}
+        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
+          <FavoriteButton gameId={game.id} />
+        </div>
+
         {/* New/Updated Tags */}
-        <div className="absolute top-3 right-3 flex flex-col gap-1">
+        <div className="absolute top-12 right-3 flex flex-col gap-1">
           {isNew && (
             <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-green-500/90 text-white backdrop-blur-sm font-bold animate-pulse">
               <Sparkles className="w-3 h-3" />
