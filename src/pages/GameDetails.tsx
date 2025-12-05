@@ -6,6 +6,8 @@ import { GameCard } from "@/components/games/GameCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { useGame, useGames } from "@/hooks/useGames";
 import { parseRichText } from "@/components/admin/RichTextEditor";
+import { ScreenshotGallery } from "@/components/games/ScreenshotGallery";
+import { AdditionalFiles } from "@/components/games/AdditionalFiles";
 import {
   Download,
   Star,
@@ -155,6 +157,13 @@ const GameDetails = () => {
               <div className="text-muted-foreground leading-relaxed mb-8 text-lg">
                 {parseRichText(game.description)}
               </div>
+
+              {/* Screenshots Gallery */}
+              {game.screenshots && game.screenshots.length > 0 && (
+                <div className="mb-8">
+                  <ScreenshotGallery screenshots={game.screenshots} />
+                </div>
+              )}
 
               {game.features && game.features.length > 0 && (
                 <div className="space-y-3">
@@ -306,6 +315,11 @@ const GameDetails = () => {
                   </span>
                 </div>
               </div>
+
+              {/* Additional Files */}
+              {game.additional_files && game.additional_files.length > 0 && (
+                <AdditionalFiles files={game.additional_files} />
+              )}
 
               {game.download_link && (
                 <button

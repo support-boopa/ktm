@@ -97,6 +97,7 @@ export type Database = {
       }
       games: {
         Row: {
+          additional_files: Json[] | null
           background_image: string | null
           category: string
           created_at: string
@@ -121,6 +122,7 @@ export type Database = {
           views: number
         }
         Insert: {
+          additional_files?: Json[] | null
           background_image?: string | null
           category: string
           created_at?: string
@@ -145,6 +147,7 @@ export type Database = {
           views?: number
         }
         Update: {
+          additional_files?: Json[] | null
           background_image?: string | null
           category?: string
           created_at?: string

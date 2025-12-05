@@ -16,12 +16,19 @@ export interface Game {
   };
   downloadLinks?: DownloadLink[];
   screenshots?: string[];
+  additional_files?: AdditionalFile[];
   developer?: string;
   genre?: string;
   featured?: boolean;
   rating?: number;
   platforms: string[];
   views?: number;
+}
+
+export interface AdditionalFile {
+  name: string;
+  url: string;
+  size: number;
 }
 
 export interface SystemRequirements {
