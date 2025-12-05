@@ -5,21 +5,25 @@ import {
   ChevronUp, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 export const QuickActions = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
 
   // Hide on game detail pages to avoid overlap with chatbot
   const isGameDetailPage = location.pathname.match(/^\/[^/]+$/) && 
     !['/', '/games', '/categories', '/top-games', '/recent', '/faq', '/how-to-download', '/contact', '/report-issue', '/profile', '/favorites', '/auth', '/account', '/forgot-password', '/reset-password'].includes(location.pathname) &&
     !location.pathname.startsWith('/categories/');
 
+  const profileLink = user ? '/profile' : '/auth';
+
   const actions = [
     { icon: Home, label: 'الرئيسية', href: '/' },
     { icon: Heart, label: 'المفضلة', href: '/favorites' },
     { icon: Gamepad2, label: 'الألعاب', href: '/games' },
-    { icon: User, label: 'حسابي', href: '/auth' },
+    { icon: User, label: 'حسابي', href: profileLink },
     { icon: Search, label: 'بحث', href: '/games' },
   ];
 

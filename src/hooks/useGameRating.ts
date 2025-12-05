@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getUserId } from './useUserId';
 import { toast } from 'sonner';
 
 interface RatingInfo {
@@ -16,12 +15,27 @@ export const useGameRating = (gameId: string) => {
     totalRatings: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get authenticated user ID
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const fetchRating = useCallback(async () => {
     if (!gameId) return;
-    
-    const userId = getUserId();
 
+    // Fetch user's rating if logged in
     if (userId) {
       const { data: userRating } = await supabase
         .from('game_ratings')
@@ -32,9 +46,12 @@ export const useGameRating = (gameId: string) => {
 
       if (userRating) {
         setRatingInfo(prev => ({ ...prev, userRating: userRating.rating }));
+      } else {
+        setRatingInfo(prev => ({ ...prev, userRating: null }));
       }
     }
 
+    // Fetch all ratings for average
     const { data: ratings } = await supabase
       .from('game_ratings')
       .select('rating')
@@ -47,18 +64,28 @@ export const useGameRating = (gameId: string) => {
         averageRating: Math.round(avg * 10) / 10,
         totalRatings: ratings.length
       }));
+    } else {
+      setRatingInfo(prev => ({
+        ...prev,
+        averageRating: 0,
+        totalRatings: 0
+      }));
     }
 
     setIsLoading(false);
-  }, [gameId]);
+  }, [gameId, userId]);
 
   useEffect(() => {
     fetchRating();
   }, [fetchRating]);
 
   const submitRating = async (rating: number) => {
-    const userId = getUserId();
-    if (!userId || !gameId) return false;
+    if (!userId) {
+      toast.error('يجب تسجيل الدخول لتقييم اللعبة');
+      return false;
+    }
+    
+    if (!gameId) return false;
 
     const { error } = await supabase
       .from('game_ratings')
@@ -71,6 +98,7 @@ export const useGameRating = (gameId: string) => {
       });
 
     if (error) {
+      console.error('Rating error:', error);
       toast.error('حدث خطأ في حفظ التقييم');
       return false;
     }

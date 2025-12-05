@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getUserId } from './useUserId';
 import { toast } from 'sonner';
 
 interface Favorite {
@@ -13,10 +12,29 @@ interface Favorite {
 export const useFavorites = () => {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get authenticated user ID
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const fetchFavorites = useCallback(async () => {
-    const userId = getUserId();
-    if (!userId) return;
+    if (!userId) {
+      setFavorites([]);
+      setIsLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('user_favorites')
@@ -28,15 +46,17 @@ export const useFavorites = () => {
       setFavorites(data);
     }
     setIsLoading(false);
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     fetchFavorites();
   }, [fetchFavorites]);
 
   const addFavorite = async (gameId: string, collectionName: string = 'المفضلة') => {
-    const userId = getUserId();
-    if (!userId) return false;
+    if (!userId) {
+      toast.error('يجب تسجيل الدخول لإضافة المفضلة');
+      return false;
+    }
 
     const { error } = await supabase
       .from('user_favorites')
@@ -45,6 +65,8 @@ export const useFavorites = () => {
     if (error) {
       if (error.code === '23505') {
         toast.error('اللعبة موجودة بالفعل في المفضلة');
+      } else {
+        toast.error('حدث خطأ في الإضافة للمفضلة');
       }
       return false;
     }
@@ -55,7 +77,6 @@ export const useFavorites = () => {
   };
 
   const removeFavorite = async (gameId: string) => {
-    const userId = getUserId();
     if (!userId) return false;
 
     const { error } = await supabase

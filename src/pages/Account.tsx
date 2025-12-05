@@ -10,14 +10,14 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   User, Mail, Lock, Camera, Loader2, Save, 
-  Eye, EyeOff, ShieldCheck, Shield, CheckCircle2, XCircle, AlertCircle, AlertTriangle
+  Eye, EyeOff, ShieldCheck, Shield, CheckCircle2, XCircle, AlertCircle, AlertTriangle, LogOut, Trash2
 } from 'lucide-react';
 import * as OTPAuth from 'otpauth';
 import QRCode from 'qrcode';
 
 const Account = () => {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading, updateProfile, updatePassword, refreshProfile, enableTOTP, disableTOTP } = useAuth();
+  const { user, profile, loading: authLoading, updateProfile, updatePassword, refreshProfile, enableTOTP, disableTOTP, signOut } = useAuth();
   
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -47,6 +47,12 @@ const Account = () => {
   const [verificationCode, setVerificationCode] = useState('');
   const [verifying2FA, setVerifying2FA] = useState(false);
   const [disabling2FA, setDisabling2FA] = useState(false);
+
+  // Delete Account States
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteStep, setDeleteStep] = useState(1);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -379,6 +385,43 @@ const Account = () => {
     setSavingPassword(false);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'حذف حسابي') {
+      toast.error('يرجى كتابة "حذف حسابي" للتأكيد');
+      return;
+    }
+
+    setDeletingAccount(true);
+
+    try {
+      // Delete user data from all tables
+      if (user) {
+        await supabase.from('user_favorites').delete().eq('user_id', user.id);
+        await supabase.from('user_achievements').delete().eq('user_id', user.id);
+        await supabase.from('user_stats').delete().eq('user_id', user.id);
+        await supabase.from('game_ratings').delete().eq('user_id', user.id);
+        await supabase.from('game_comments').delete().eq('user_id', user.id);
+        await supabase.from('profiles').delete().eq('user_id', user.id);
+      }
+
+      // Sign out
+      await signOut();
+      
+      toast.success('تم حذف حسابك بنجاح');
+      navigate('/');
+    } catch (err) {
+      console.error('Delete account error:', err);
+      toast.error('حدث خطأ في حذف الحساب');
+    }
+
+    setDeletingAccount(false);
+  };
+
   if (authLoading) {
     return (
       <Layout>
@@ -543,12 +586,42 @@ const Account = () => {
                 </p>
               </div>
             </div>
+
+            {/* Logout & Delete Section */}
+            <div className="glass-morphism p-8 animate-slide-up rounded-2xl border border-border/50" style={{ animationDelay: '0.15s' }}>
+              <h2 className="font-display text-xl font-bold mb-6 flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-red-500/20">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                </div>
+                إجراءات الحساب
+              </h2>
+
+              <div className="space-y-4">
+                <Button 
+                  onClick={handleSignOut}
+                  variant="outline"
+                  className="w-full h-12 rounded-xl text-base"
+                >
+                  <LogOut className="w-5 h-5 ml-2" />
+                  تسجيل الخروج
+                </Button>
+
+                <Button 
+                  onClick={() => { setShowDeleteModal(true); setDeleteStep(1); setDeleteConfirmText(''); }}
+                  variant="destructive"
+                  className="w-full h-12 rounded-xl text-base"
+                >
+                  <Trash2 className="w-5 h-5 ml-2" />
+                  حذف الحساب نهائياً
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Right Column */}
           <div className="space-y-8">
             {/* Password Section */}
-            <div className="glass-morphism p-8 animate-slide-up rounded-2xl border border-border/50" style={{ animationDelay: '0.15s' }}>
+            <div className="glass-morphism p-8 animate-slide-up rounded-2xl border border-border/50" style={{ animationDelay: '0.2s' }}>
               <h2 className="font-display text-xl font-bold mb-6 flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-orange-500/20">
                   <Lock className="w-5 h-5 text-orange-400" />
@@ -607,7 +680,7 @@ const Account = () => {
             </div>
 
             {/* 2FA Section */}
-            <div className="glass-morphism p-8 animate-slide-up rounded-2xl border border-border/50" style={{ animationDelay: '0.2s' }}>
+            <div className="glass-morphism p-8 animate-slide-up rounded-2xl border border-border/50" style={{ animationDelay: '0.25s' }}>
               <h2 className="font-display text-xl font-bold mb-6 flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-green-500/20">
                   <ShieldCheck className="w-5 h-5 text-green-400" />
@@ -782,6 +855,93 @@ const Account = () => {
               نعم، إلغاء التفعيل
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Modal - Multi-Step */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="sm:max-w-md glass-morphism border-red-500/20 animate-scale-in rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-xl text-red-400">
+              <div className="p-2 rounded-xl bg-red-500/20">
+                <Trash2 className="w-6 h-6 text-red-500" />
+              </div>
+              حذف الحساب نهائياً
+            </DialogTitle>
+          </DialogHeader>
+
+          {deleteStep === 1 && (
+            <>
+              <DialogDescription className="text-base pt-2">
+                هل أنت متأكد من رغبتك في حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.
+              </DialogDescription>
+              
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 my-4 space-y-2">
+                <p className="text-sm text-red-400 font-semibold">سيتم حذف:</p>
+                <ul className="text-sm text-red-400 list-disc list-inside space-y-1">
+                  <li>جميع بيانات ملفك الشخصي</li>
+                  <li>قائمة الألعاب المفضلة</li>
+                  <li>جميع التقييمات والتعليقات</li>
+                  <li>الإنجازات والإحصائيات</li>
+                </ul>
+              </div>
+
+              <DialogFooter className="flex gap-3 sm:gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 h-11 rounded-xl"
+                >
+                  إلغاء
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => setDeleteStep(2)}
+                  className="flex-1 h-11 rounded-xl"
+                >
+                  متابعة
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {deleteStep === 2 && (
+            <>
+              <DialogDescription className="text-base pt-2">
+                للتأكيد النهائي، اكتب "حذف حسابي" في الحقل أدناه:
+              </DialogDescription>
+              
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder='اكتب "حذف حسابي"'
+                className="h-12 text-center bg-card/50 border-red-500/30 focus:border-red-500 rounded-xl"
+              />
+
+              <DialogFooter className="flex gap-3 sm:gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDeleteStep(1)}
+                  className="flex-1 h-11 rounded-xl"
+                >
+                  رجوع
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount || deleteConfirmText !== 'حذف حسابي'}
+                  className="flex-1 h-11 rounded-xl"
+                >
+                  {deletingAccount ? (
+                    <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                  ) : (
+                    <Trash2 className="w-5 h-5 ml-2" />
+                  )}
+                  حذف الحساب
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </Layout>
