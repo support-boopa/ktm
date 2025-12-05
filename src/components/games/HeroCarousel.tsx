@@ -85,15 +85,14 @@ export const HeroCarousel = ({ games }: HeroCarouselProps) => {
 
       {/* Content */}
       <div className="relative h-full container mx-auto px-4 flex items-center">
-        <div 
-          className={cn(
-            "max-w-2xl space-y-6 transition-all duration-700",
-            "animate-fade-in"
-          )} 
-          key={currentIndex}
-        >
+        <div className="max-w-2xl space-y-6" key={currentIndex}>
           {/* Category & Rating */}
-          <div className="flex items-center gap-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div 
+            className="flex items-center gap-4 opacity-0"
+            style={{ 
+              animation: 'heroFadeSlide 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards'
+            }}
+          >
             <span className="px-4 py-1.5 bg-primary/90 text-primary-foreground text-sm font-bold rounded-full">
               {currentGame.genre || currentGame.category}
             </span>
@@ -107,29 +106,39 @@ export const HeroCarousel = ({ games }: HeroCarouselProps) => {
 
           {/* Title */}
           <h1 
-            className="font-display text-5xl md:text-7xl font-black text-white leading-tight animate-slide-up drop-shadow-2xl"
-            style={{ animationDelay: '0.2s' }}
+            className="font-display text-5xl md:text-7xl font-black text-white leading-tight drop-shadow-2xl opacity-0"
+            style={{ 
+              animation: 'heroFadeSlide 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards'
+            }}
           >
             {currentGame.title}
           </h1>
 
           {/* Description */}
           <div 
-            className="text-lg md:text-xl text-gray-200 line-clamp-3 max-w-xl animate-slide-up"
-            style={{ animationDelay: '0.3s' }}
+            className="text-lg md:text-xl text-gray-200 line-clamp-3 max-w-xl opacity-0"
+            style={{ 
+              animation: 'heroFadeSlide 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards'
+            }}
           >
             {parseRichText(currentGame.description)}
           </div>
 
           {/* Download Button */}
-          <Link 
-            to={`/${currentGame.slug}`} 
-            className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary to-cyan-500 hover:from-primary/90 hover:to-cyan-400 text-primary-foreground font-bold text-lg rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] animate-slide-up"
-            style={{ animationDelay: '0.4s' }}
+          <div 
+            className="opacity-0"
+            style={{ 
+              animation: 'heroButtonReveal 1s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards'
+            }}
           >
-            <Download className="w-5 h-5" />
-            <span>تحميل الآن</span>
-          </Link>
+            <Link 
+              to={`/${currentGame.slug}`} 
+              className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary to-cyan-500 text-primary-foreground font-bold text-lg rounded-xl transition-all duration-500 hover:shadow-[0_0_40px_rgba(var(--primary),0.4)] hover:gap-4"
+            >
+              <Download className="w-5 h-5 transition-transform duration-500 group-hover:scale-110" />
+              <span>تحميل الآن</span>
+            </Link>
+          </div>
         </div>
       </div>
 
