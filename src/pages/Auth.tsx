@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Mail, Lock, User, Loader2, ShieldCheck } from 'lucide-react';
 import { z } from 'zod';
@@ -43,18 +44,23 @@ const Auth = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   
-  // 2FA state
-  const [show2FA, setShow2FA] = useState(false);
+  // 2FA signup state
+  const [show2FASetup, setShow2FASetup] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [totpSecret, setTotpSecret] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
 
+  // 2FA login state
+  const [show2FALogin, setShow2FALogin] = useState(false);
+  const [loginTotpSecret, setLoginTotpSecret] = useState('');
+  const [loginOtpCode, setLoginOtpCode] = useState('');
+
   useEffect(() => {
-    if (user) {
+    if (user && !show2FASetup && !show2FALogin) {
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, navigate, show2FASetup, show2FALogin]);
 
   const generateTOTP = async () => {
     const secret = new OTPAuth.Secret({ size: 20 });
@@ -86,7 +92,7 @@ const Auth = () => {
         secret: OTPAuth.Secret.fromBase32(secret),
       });
 
-      const delta = totp.validate({ token: code, window: 1 });
+      const delta = totp.validate({ token: code, window: 2 });
       return delta !== null;
     } catch {
       return false;
@@ -106,9 +112,12 @@ const Auth = () => {
           return;
         }
 
-        const { error } = await signIn(email, password);
+        const { error, needsTOTP, totpSecret } = await signIn(email, password);
         if (error) {
           toast.error(error.message);
+        } else if (needsTOTP && totpSecret) {
+          setLoginTotpSecret(totpSecret);
+          setShow2FALogin(true);
         } else {
           toast.success('تم تسجيل الدخول بنجاح');
           navigate('/');
@@ -127,7 +136,7 @@ const Auth = () => {
         } else if (userId) {
           setPendingUserId(userId);
           await generateTOTP();
-          setShow2FA(true);
+          setShow2FASetup(true);
           toast.info('يرجى إعداد التحقق بخطوتين لإكمال التسجيل');
         }
       }
@@ -138,7 +147,7 @@ const Auth = () => {
     }
   };
 
-  const handleVerify2FA = async () => {
+  const handleVerify2FASetup = async () => {
     if (!otpCode || otpCode.length !== 6) {
       toast.error('يرجى إدخال رمز مكون من 6 أرقام');
       return;
@@ -149,7 +158,6 @@ const Auth = () => {
     const isValid = verifyTOTP(otpCode, totpSecret);
     
     if (isValid && pendingUserId) {
-      // Save TOTP secret to profile
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -165,7 +173,7 @@ const Auth = () => {
       }
 
       toast.success('تم إنشاء الحساب بنجاح!');
-      setShow2FA(false);
+      setShow2FASetup(false);
       navigate('/');
     } else {
       toast.error('الرمز غير صحيح، يرجى المحاولة مرة أخرى');
@@ -174,7 +182,37 @@ const Auth = () => {
     setLoading(false);
   };
 
-  if (show2FA) {
+  const handleVerify2FALogin = async () => {
+    if (!loginOtpCode || loginOtpCode.length !== 6) {
+      toast.error('يرجى إدخال رمز مكون من 6 أرقام');
+      return;
+    }
+
+    setLoading(true);
+    
+    const isValid = verifyTOTP(loginOtpCode, loginTotpSecret);
+    
+    if (isValid) {
+      toast.success('تم تسجيل الدخول بنجاح!');
+      setShow2FALogin(false);
+      navigate('/');
+    } else {
+      toast.error('الرمز غير صحيح، يرجى المحاولة مرة أخرى');
+      // Sign out the user since TOTP verification failed
+      await supabase.auth.signOut();
+    }
+    
+    setLoading(false);
+  };
+
+  const handleCancel2FALogin = async () => {
+    await supabase.auth.signOut();
+    setShow2FALogin(false);
+    setLoginOtpCode('');
+    setLoginTotpSecret('');
+  };
+
+  if (show2FASetup) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-16 max-w-md">
@@ -221,7 +259,7 @@ const Auth = () => {
               </div>
 
               <Button
-                onClick={handleVerify2FA}
+                onClick={handleVerify2FASetup}
                 className="w-full"
                 disabled={loading || otpCode.length !== 6}
               >
@@ -371,6 +409,65 @@ const Auth = () => {
           </div>
         </div>
       </div>
+
+      {/* 2FA Login Verification Modal */}
+      <Dialog open={show2FALogin} onOpenChange={(open) => !open && handleCancel2FALogin()}>
+        <DialogContent className="sm:max-w-md glass-morphism border-border/50 animate-scale-in">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <ShieldCheck className="w-6 h-6 text-primary" />
+              التحقق بخطوتين
+            </DialogTitle>
+            <DialogDescription>
+              أدخل الرمز المؤقت من تطبيق المصادقة الخاص بك
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="flex flex-col items-center">
+              <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mb-4 animate-pulse">
+                <ShieldCheck className="w-10 h-10 text-primary" />
+              </div>
+              <p className="text-sm text-muted-foreground text-center">
+                افتح تطبيق المصادقة وأدخل الرمز المكون من 6 أرقام
+              </p>
+            </div>
+
+            <div>
+              <Input
+                type="text"
+                placeholder="000000"
+                value={loginOtpCode}
+                onChange={(e) => setLoginOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="text-center text-3xl tracking-[0.5em] font-mono h-14"
+                maxLength={6}
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleCancel2FALogin}
+                className="flex-1"
+                disabled={loading}
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={handleVerify2FALogin}
+                className="flex-1"
+                disabled={loading || loginOtpCode.length !== 6}
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                ) : null}
+                تأكيد
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

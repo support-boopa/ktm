@@ -21,7 +21,7 @@ export interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signUp: (email: string, password: string, username: string, firstName: string, lastName?: string) => Promise<{ error: any; userId?: string }>;
-  signIn: (email: string, password: string) => Promise<{ error: any; needsTOTP?: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; needsTOTP?: boolean; totpSecret?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
@@ -157,8 +157,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const profileData = await fetchProfile(data.user.id);
       setProfile(profileData);
       
-      if (profileData?.totp_enabled) {
-        return { error: null, needsTOTP: true };
+      if (profileData?.totp_enabled && profileData?.totp_secret) {
+        return { error: null, needsTOTP: true, totpSecret: profileData.totp_secret };
       }
     }
 
