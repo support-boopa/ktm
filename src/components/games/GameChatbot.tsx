@@ -2,10 +2,12 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, Send, X, Bot, User, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useUserStats } from "@/hooks/useUserStats";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  isTyping?: boolean;
 }
 
 interface GameContext {
@@ -55,13 +57,43 @@ const clearMessages = (gameTitle: string) => {
   }
 };
 
+// Typing animation component
+const TypingText = ({ text, onComplete }: { text: string; onComplete?: () => void }) => {
+  const [displayedText, setDisplayedText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      const speed = Math.random() * 20 + 10; // Variable speed for natural feel
+      const timer = setTimeout(() => {
+        setDisplayedText(prev => prev + text[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
+      }, speed);
+      return () => clearTimeout(timer);
+    } else if (onComplete) {
+      onComplete();
+    }
+  }, [currentIndex, text, onComplete]);
+
+  return (
+    <span className="relative">
+      {displayedText}
+      {currentIndex < text.length && (
+        <span className="inline-block w-0.5 h-4 bg-primary animate-pulse ml-0.5" />
+      )}
+    </span>
+  );
+};
+
 export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => loadMessages(gameContext.title));
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [typingMessageIndex, setTypingMessageIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { incrementStat } = useUserStats();
 
   // Save messages whenever they change
   useEffect(() => {
@@ -78,6 +110,7 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
   const handleClearChat = useCallback(() => {
     clearMessages(gameContext.title);
     setMessages([]);
+    setTypingMessageIndex(null);
   }, [gameContext.title]);
 
   const scrollToBottom = () => {
@@ -102,6 +135,9 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
     setInput("");
     setIsLoading(true);
 
+    // Increment chat messages stat
+    incrementStat('chat_messages_sent');
+
     let assistantContent = "";
 
     try {
@@ -125,8 +161,9 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
       const decoder = new TextDecoder();
       let buffer = "";
 
-      // Add empty assistant message
-      setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+      // Add empty assistant message with typing indicator
+      setMessages(prev => [...prev, { role: "assistant", content: "", isTyping: true }]);
+      const newMsgIndex = messages.length + 1;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -156,6 +193,7 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
                 newMessages[newMessages.length - 1] = {
                   role: "assistant",
                   content: assistantContent,
+                  isTyping: false,
                 };
                 return newMessages;
               });
@@ -165,10 +203,13 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
           }
         }
       }
+      
+      // Set typing animation for the final message
+      setTypingMessageIndex(newMsgIndex);
     } catch (error) {
       console.error("Chat error:", error);
       setMessages(prev => [
-        ...prev,
+        ...prev.slice(0, -1),
         { role: "assistant", content: "عذراً، حدث خطأ. حاول مرة أخرى." },
       ]);
     } finally {
@@ -185,16 +226,18 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
 
   return (
     <>
-      {/* Chat Toggle Button */}
+      {/* Chat Toggle Button - Adjusted for mobile */}
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          "fixed bottom-6 left-6 z-50 p-4 rounded-full",
+          "fixed z-50 p-4 rounded-full",
           "bg-gradient-to-r from-primary to-secondary",
           "shadow-lg shadow-primary/30",
           "hover:shadow-xl hover:shadow-primary/40 hover:scale-110",
           "transition-all duration-300",
           "animate-bounce-slow",
+          // Position adjustments for mobile to avoid overlap with bottom nav
+          "bottom-20 md:bottom-6 left-4 md:left-6",
           isOpen && "hidden"
         )}
       >
@@ -202,16 +245,20 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
         <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse" />
       </button>
 
-      {/* Chat Window */}
+      {/* Chat Window - Adjusted for mobile */}
       <div
         className={cn(
-          "fixed bottom-6 left-6 z-50 w-[440px] max-w-[calc(100vw-48px)]",
+          "fixed z-50",
+          // Mobile: full width with proper margins, Desktop: fixed width
+          "left-2 right-2 md:left-6 md:right-auto md:w-[440px]",
+          // Mobile: above bottom nav, Desktop: normal position
+          "bottom-24 md:bottom-6",
           "bg-background/95 backdrop-blur-xl border border-border/50",
           "rounded-2xl shadow-2xl shadow-primary/20",
           "transition-all duration-500 ease-out",
           "flex flex-col",
           isOpen
-            ? "opacity-100 translate-y-0 scale-100 h-[580px]"
+            ? "opacity-100 translate-y-0 scale-100 h-[60vh] md:h-[580px] max-h-[calc(100vh-120px)] md:max-h-none"
             : "opacity-0 translate-y-8 scale-95 h-0 pointer-events-none"
         )}
       >
@@ -219,15 +266,15 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
         <div className="flex items-center justify-between p-4 border-b border-border/50 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-t-2xl">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center animate-pulse-glow">
+                <img src="/favicon.png" alt="KTM AI" className="w-6 h-6 object-contain" />
               </div>
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
             </div>
             <div>
               <h3 className="font-display font-bold text-foreground flex items-center gap-1">
                 كَتَم AI
-                <Sparkles className="w-4 h-4 text-primary" />
+                <Sparkles className="w-4 h-4 text-primary animate-spin-slow" />
               </h3>
               <p className="text-xs text-muted-foreground">مساعدك الذكي للألعاب</p>
             </div>
@@ -238,7 +285,7 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
                 variant="ghost"
                 size="icon"
                 onClick={handleClearChat}
-                className="hover:bg-destructive/10 hover:text-destructive rounded-full"
+                className="hover:bg-destructive/10 hover:text-destructive rounded-full transition-all duration-300 hover:rotate-12"
                 title="مسح المحادثة"
               >
                 <Trash2 className="w-4 h-4" />
@@ -248,7 +295,7 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(false)}
-              className="hover:bg-destructive/10 hover:text-destructive rounded-full"
+              className="hover:bg-destructive/10 hover:text-destructive rounded-full transition-all duration-300 hover:rotate-90"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -259,19 +306,20 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 && (
             <div className="text-center py-8 animate-fade-in">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                <Bot className="w-8 h-8 text-primary" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center animate-float">
+                <img src="/favicon.png" alt="KTM AI" className="w-8 h-8 object-contain" />
               </div>
-              <h4 className="font-bold text-foreground mb-2">مرحباً! 👋</h4>
-              <p className="text-sm text-muted-foreground mb-4">
+              <h4 className="font-bold text-foreground mb-2 animate-slide-up">مرحباً! 👋</h4>
+              <p className="text-sm text-muted-foreground mb-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
                 أنا كَتَم AI، اسألني أي شيء عن لعبة "{gameContext.title}"
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
-                {["ملخص اللعبة", "طريقة التحميل", "هل آمنة؟"].map((q) => (
+                {["ملخص اللعبة", "طريقة التحميل", "هل آمنة؟"].map((q, i) => (
                   <button
                     key={q}
                     onClick={() => setInput(q)}
-                    className="px-3 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 rounded-full transition-colors"
+                    className="px-3 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 rounded-full transition-all duration-300 hover:scale-105 animate-scale-in"
+                    style={{ animationDelay: `${0.2 + i * 0.1}s` }}
                   >
                     {q}
                   </button>
@@ -284,33 +332,44 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
             <div
               key={i}
               className={cn(
-                "flex gap-3 animate-slide-up",
-                msg.role === "user" ? "flex-row-reverse" : ""
+                "flex gap-3",
+                msg.role === "user" ? "flex-row-reverse" : "",
+                // Animation for new messages
+                "animate-message-in"
               )}
+              style={{ animationDelay: `${i * 0.05}s` }}
             >
               <div
                 className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                  "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300",
                   msg.role === "user"
                     ? "bg-secondary/20"
-                    : "bg-gradient-to-br from-primary to-secondary"
+                    : "bg-gradient-to-br from-primary to-secondary animate-pulse-glow"
                 )}
               >
                 {msg.role === "user" ? (
                   <User className="w-4 h-4 text-secondary" />
                 ) : (
-                  <Bot className="w-4 h-4 text-white" />
+                  <img src="/favicon.png" alt="KTM AI" className="w-4 h-4 object-contain" />
                 )}
               </div>
               <div
                 className={cn(
-                  "max-w-[80%] p-3 rounded-2xl text-sm",
+                  "max-w-[80%] p-3 rounded-2xl text-sm transition-all duration-300",
                   msg.role === "user"
-                    ? "bg-secondary text-secondary-foreground rounded-br-sm"
-                    : "bg-muted rounded-bl-sm"
+                    ? "bg-secondary text-secondary-foreground rounded-br-sm animate-slide-in-right"
+                    : "bg-muted rounded-bl-sm animate-slide-in-left"
                 )}
               >
-                {msg.content || (
+                {msg.isTyping ? (
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                ) : msg.content ? (
+                  <span className="whitespace-pre-wrap">{msg.content}</span>
+                ) : (
                   <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                 )}
               </div>
@@ -330,12 +389,12 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
               onKeyDown={handleKeyDown}
               placeholder="اكتب رسالتك..."
               disabled={isLoading}
-              className="flex-1 px-4 py-2.5 bg-muted rounded-xl border-0 focus:ring-2 focus:ring-primary/50 text-sm placeholder:text-muted-foreground"
+              className="flex-1 px-4 py-2.5 bg-muted rounded-xl border-0 focus:ring-2 focus:ring-primary/50 text-sm placeholder:text-muted-foreground transition-all duration-300 focus:scale-[1.02]"
             />
             <Button
               onClick={sendMessage}
               disabled={!input.trim() || isLoading}
-              className="rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90"
+              className="rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/30"
             >
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -346,6 +405,67 @@ export const GameChatbot = ({ gameContext }: GameChatbotProps) => {
           </div>
         </div>
       </div>
+
+      {/* Add custom animations */}
+      <style>{`
+        @keyframes message-in {
+          from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        @keyframes slide-in-left {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes slide-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes spin-slow {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        
+        .animate-message-in {
+          animation: message-in 0.4s ease-out forwards;
+        }
+        
+        .animate-slide-in-left {
+          animation: slide-in-left 0.3s ease-out;
+        }
+        
+        .animate-slide-in-right {
+          animation: slide-in-right 0.3s ease-out;
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 3s linear infinite;
+        }
+      `}</style>
     </>
   );
 };

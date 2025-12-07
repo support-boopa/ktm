@@ -24,6 +24,7 @@ import Auth from "./pages/Auth";
 import Account from "./pages/Account";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AITrend from "./pages/AITrend";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -77,6 +78,8 @@ const App = () => {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/ktm-admin-panel" element={<Admin />} />
+                <Route path="/ktm/ai/trend" element={<AITrend />} />
+                <Route path="/ktm/ai/trend/:conversationId" element={<AITrend />} />
                 {/* Game detail route - matches /game-slug-free-download */}
                 <Route path="/:slug" element={<GameDetails />} />
                 <Route path="*" element={<NotFound />} />
