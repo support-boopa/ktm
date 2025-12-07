@@ -343,7 +343,10 @@ const GameDetails = () => {
 
               {game.download_link && (
                 <button
-                  onClick={() => window.location.href = game.download_link!}
+                  onClick={() => {
+                    incrementStat('games_downloaded');
+                    window.location.href = game.download_link!;
+                  }}
                   className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-lg animate-scale-in"
                   style={{ animationDelay: '0.3s' }}
                 >

@@ -77,9 +77,38 @@ export const useUserStats = () => {
 
   const incrementStat = async (stat: 'games_viewed' | 'games_downloaded' | 'favorites_count' | 'chat_messages_sent') => {
     const userId = getUserId();
-    if (!userId || !stats) return;
+    if (!userId) return;
 
-    const newValue = (stats[stat] || 0) + 1;
+    // Fetch current stats if not loaded yet
+    let currentStats = stats;
+    if (!currentStats) {
+      const { data } = await supabase
+        .from('user_stats')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (data) {
+        currentStats = data;
+        setStats(data);
+      } else {
+        // Create new stats record
+        const { data: newData } = await supabase
+          .from('user_stats')
+          .insert({ user_id: userId })
+          .select()
+          .single();
+        
+        if (newData) {
+          currentStats = newData;
+          setStats(newData);
+        }
+      }
+    }
+
+    if (!currentStats) return;
+
+    const newValue = (currentStats[stat] || 0) + 1;
     
     await supabase
       .from('user_stats')
