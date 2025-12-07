@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { 
   Lock, Plus, Trash2, Edit, LogOut, Gamepad2, Search, 
   ChevronLeft, ChevronRight, Eye, BarChart3,
-  Star, X, Mail, Bug, MessageSquare, Image, FolderOpen
+  Star, X, Mail, Bug, MessageSquare, Image, FolderOpen, Bot
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ImageUpload } from "@/components/admin/ImageUpload";
@@ -428,6 +428,14 @@ export default function Admin() {
             <h1 className="text-2xl font-display font-bold gradient-text">لوحة تحكم KTM</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate("/ktm/ai/trend")} 
+              className="glass-card border-primary/50 hover:border-primary hover:bg-primary/10 transition-all duration-300 gap-2"
+            >
+              <Bot className="w-4 h-4 text-primary animate-glow-pulse" />
+              AI Trend
+            </Button>
             <Button variant="outline" onClick={() => navigate("/")} className="glass-card border-border/50 hover:border-primary/50 transition-all duration-300">
               العودة للموقع
             </Button>
