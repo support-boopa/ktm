@@ -148,21 +148,38 @@ const CodeBlock = ({
   language: string;
 }) => {
   const [copied, setCopied] = useState(false);
-  const codeRef = useRef<HTMLElement>(null);
+  const [highlightedCode, setHighlightedCode] = useState<string>("");
   
-  const normalizedLang = languageMap[language.toLowerCase()] || "javascript";
+  const normalizedLang = languageMap[language?.toLowerCase()] || "javascript";
   
   useEffect(() => {
-    if (codeRef.current) {
-      Prism.highlightElement(codeRef.current);
+    try {
+      // Check if language is supported
+      const grammar = Prism.languages[normalizedLang];
+      if (grammar && code) {
+        const highlighted = Prism.highlight(code, grammar, normalizedLang);
+        setHighlightedCode(highlighted);
+      } else {
+        // Fallback to plain code if language not supported
+        setHighlightedCode(code || "");
+      }
+    } catch (error) {
+      console.error("Prism highlighting error:", error);
+      setHighlightedCode(code || "");
     }
   }, [code, normalizedLang]);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Copy failed:", error);
+    }
   };
+
+  if (!code) return null;
 
   return (
     <div className="my-4 rounded-xl overflow-hidden border border-white/10 bg-[#1d1f21] animate-fade-in">
@@ -183,9 +200,10 @@ const CodeBlock = ({
       </div>
       <div className="overflow-auto max-h-[400px] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
         <pre className="p-4 m-0 text-sm leading-relaxed">
-          <code ref={codeRef} className={`language-${normalizedLang}`}>
-            {code}
-          </code>
+          <code 
+            className={`language-${normalizedLang}`}
+            dangerouslySetInnerHTML={{ __html: highlightedCode }}
+          />
         </pre>
       </div>
     </div>
@@ -238,6 +256,11 @@ const RichContent = ({
   displayedLength?: number;
 }) => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  
+  // Safety check for content
+  if (!content || typeof content !== 'string') {
+    return <div className="text-gray-400">...</div>;
+  }
   
   const textToRender = isAnimating && displayedLength !== undefined 
     ? content.slice(0, displayedLength) 
@@ -551,10 +574,20 @@ const RichContent = ({
     return elements;
   };
 
+  // Wrap parseContent in try-catch to prevent crashes
+  const safeParseContent = () => {
+    try {
+      return parseContent(textToRender);
+    } catch (error) {
+      console.error("Error parsing content:", error);
+      return <p className="whitespace-pre-wrap">{textToRender}</p>;
+    }
+  };
+
   return (
     <>
       <div className="leading-relaxed text-lg">
-        {parseContent(textToRender)}
+        {safeParseContent()}
       </div>
       <ImageLightbox 
         src={lightboxImage || ''} 
@@ -576,6 +609,11 @@ const StreamingText = ({
 }) => {
   const [displayedChars, setDisplayedChars] = useState(0);
   const prevContentRef = useRef(content);
+  
+  // Safety check
+  if (!content || typeof content !== 'string') {
+    return <div className="text-gray-400">...</div>;
+  }
   
   useEffect(() => {
     if (content !== prevContentRef.current) {
