@@ -5,6 +5,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import Prism from "prismjs";
+import "prismjs/themes/prism-tomorrow.css";
+import "prismjs/components/prism-javascript";
+import "prismjs/components/prism-typescript";
+import "prismjs/components/prism-jsx";
+import "prismjs/components/prism-tsx";
+import "prismjs/components/prism-css";
+import "prismjs/components/prism-python";
+import "prismjs/components/prism-java";
+import "prismjs/components/prism-c";
+import "prismjs/components/prism-cpp";
+import "prismjs/components/prism-csharp";
+import "prismjs/components/prism-php";
+import "prismjs/components/prism-ruby";
+import "prismjs/components/prism-go";
+import "prismjs/components/prism-rust";
+import "prismjs/components/prism-sql";
+import "prismjs/components/prism-bash";
+import "prismjs/components/prism-json";
+import "prismjs/components/prism-yaml";
+import "prismjs/components/prism-markdown";
+import "prismjs/components/prism-markup";
 import {
   Send,
   Bot,
@@ -36,6 +58,8 @@ import {
   ZoomIn,
   AlertTriangle,
   Table,
+  Copy,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -78,6 +102,96 @@ interface TrendHistory {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-trend-chat`;
 
+// Language mapping for Prism
+const languageMap: { [key: string]: string } = {
+  js: "javascript",
+  ts: "typescript",
+  jsx: "jsx",
+  tsx: "tsx",
+  html: "markup",
+  xml: "markup",
+  css: "css",
+  python: "python",
+  py: "python",
+  java: "java",
+  c: "c",
+  cpp: "cpp",
+  "c++": "cpp",
+  cs: "csharp",
+  "c#": "csharp",
+  csharp: "csharp",
+  php: "php",
+  ruby: "ruby",
+  rb: "ruby",
+  go: "go",
+  rust: "rust",
+  rs: "rust",
+  sql: "sql",
+  bash: "bash",
+  sh: "bash",
+  shell: "bash",
+  json: "json",
+  yaml: "yaml",
+  yml: "yaml",
+  md: "markdown",
+  markdown: "markdown",
+  javascript: "javascript",
+  typescript: "typescript",
+};
+
+// Code Block Component with syntax highlighting
+const CodeBlock = ({ 
+  code, 
+  language 
+}: { 
+  code: string; 
+  language: string;
+}) => {
+  const [copied, setCopied] = useState(false);
+  const codeRef = useRef<HTMLElement>(null);
+  
+  const normalizedLang = languageMap[language.toLowerCase()] || "javascript";
+  
+  useEffect(() => {
+    if (codeRef.current) {
+      Prism.highlightElement(codeRef.current);
+    }
+  }, [code, normalizedLang]);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-4 rounded-xl overflow-hidden border border-white/10 bg-[#1d1f21] animate-fade-in">
+      <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <Code className="w-4 h-4 text-emerald-400" />
+          <span className="text-sm font-medium text-gray-400">{language || "code"}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleCopy}
+          className="h-7 px-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg"
+        >
+          {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+          <span className="mr-1.5 text-xs">{copied ? "تم النسخ" : "نسخ"}</span>
+        </Button>
+      </div>
+      <div className="overflow-auto max-h-[400px] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+        <pre className="p-4 m-0 text-sm leading-relaxed">
+          <code ref={codeRef} className={`language-${normalizedLang}`}>
+            {code}
+          </code>
+        </pre>
+      </div>
+    </div>
+  );
+};
+
 // Image Lightbox Component
 const ImageLightbox = ({ 
   src, 
@@ -113,7 +227,7 @@ const ImageLightbox = ({
   );
 };
 
-// Rich content parser with tables, images, links support
+// Rich content parser with tables, images, links, code blocks
 const RichContent = ({ 
   content, 
   isAnimating,
@@ -125,7 +239,6 @@ const RichContent = ({
 }) => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   
-  // Use only displayed portion if animating
   const textToRender = isAnimating && displayedLength !== undefined 
     ? content.slice(0, displayedLength) 
     : content;
@@ -140,7 +253,7 @@ const RichContent = ({
     while (i < lines.length) {
       const line = lines[i];
       
-      // Detect table (lines with | characters)
+      // Detect table
       if (line.includes('|') && line.trim().startsWith('|')) {
         if (!inTable) {
           inTable = true;
@@ -150,7 +263,6 @@ const RichContent = ({
         i++;
         continue;
       } else if (inTable) {
-        // End of table
         elements.push(renderTable(tableBuffer, elements.length));
         tableBuffer = [];
         inTable = false;
@@ -202,9 +314,9 @@ const RichContent = ({
         continue;
       }
 
-      // Code blocks
+      // Code blocks with syntax highlighting
       if (line.startsWith('```')) {
-        const lang = line.slice(3).trim();
+        const lang = line.slice(3).trim() || "javascript";
         const codeLines: string[] = [];
         i++;
         while (i < lines.length && !lines[i].startsWith('```')) {
@@ -212,11 +324,11 @@ const RichContent = ({
           i++;
         }
         elements.push(
-          <pre key={`code-${i}`} className="bg-black/40 rounded-xl p-4 my-4 overflow-x-auto border border-white/5">
-            <code className="text-sm font-mono text-emerald-300">
-              {codeLines.join('\n')}
-            </code>
-          </pre>
+          <CodeBlock 
+            key={`code-${i}`} 
+            code={codeLines.join('\n')} 
+            language={lang} 
+          />
         );
         i++;
         continue;
@@ -257,7 +369,6 @@ const RichContent = ({
       i++;
     }
 
-    // Handle remaining table
     if (inTable && tableBuffer.length > 0) {
       elements.push(renderTable(tableBuffer, elements.length));
     }
@@ -273,7 +384,6 @@ const RichContent = ({
     };
     
     const headers = parseRow(tableLines[0]);
-    // Skip separator line (contains ---)
     const dataRows = tableLines.slice(2).map(parseRow);
     
     return (
@@ -318,20 +428,9 @@ const RichContent = ({
     let remaining = text;
     let keyCounter = 0;
 
-    // Image URLs - convert to actual images
+    // Image URLs
     const imageRegex = /\[?(https?:\/\/[^\s\]]+\.(jpg|jpeg|png|gif|webp)(\?[^\s\]]*)?)\]?(\([^\)]*\))?/gi;
     
-    // Links - [text](url) or plain URLs
-    const linkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
-    const plainUrlRegex = /(https?:\/\/[^\s]+)/g;
-    
-    // Bold - **text**
-    const boldRegex = /\*\*([^*]+)\*\*/g;
-    
-    // Inline code - `code`
-    const codeRegex = /`([^`]+)`/g;
-
-    // Process in order: images first, then links, then formatting
     let result = remaining;
     const imageMatches: { match: string; url: string; index: number }[] = [];
     
@@ -347,13 +446,11 @@ const RichContent = ({
     if (imageMatches.length > 0) {
       let lastIndex = 0;
       imageMatches.forEach((img, idx) => {
-        // Add text before image
         if (img.index > lastIndex) {
           const beforeText = result.slice(lastIndex, img.index);
           elements.push(...parseTextFormatting(beforeText, keyCounter++));
         }
         
-        // Add image
         elements.push(
           <div key={`img-${keyCounter++}`} className="my-4">
             <div 
@@ -379,7 +476,6 @@ const RichContent = ({
         lastIndex = img.index + img.match.length;
       });
       
-      // Add remaining text
       if (lastIndex < result.length) {
         elements.push(...parseTextFormatting(result.slice(lastIndex), keyCounter++));
       }
@@ -395,7 +491,6 @@ const RichContent = ({
     let remaining = text;
     let key = startKey;
 
-    // Process links [text](url)
     const parts = remaining.split(/(\[[^\]]+\]\([^\)]+\))/g);
     
     parts.forEach((part, i) => {
@@ -414,7 +509,6 @@ const RichContent = ({
           </a>
         );
       } else if (part) {
-        // Process bold and code
         const formattedParts = part.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
         formattedParts.forEach((fp, j) => {
           if (fp.startsWith('**') && fp.endsWith('**')) {
@@ -430,7 +524,6 @@ const RichContent = ({
               </code>
             );
           } else if (fp) {
-            // Check for plain URLs
             const urlParts = fp.split(/(https?:\/\/[^\s]+)/g);
             urlParts.forEach((up, k) => {
               if (up.match(/^https?:\/\//)) {
@@ -485,7 +578,6 @@ const StreamingText = ({
   const prevContentRef = useRef(content);
   
   useEffect(() => {
-    // If content changed, continue from current position
     if (content !== prevContentRef.current) {
       prevContentRef.current = content;
     }
@@ -561,10 +653,24 @@ const DeleteConfirmDialog = ({
   );
 };
 
+// Check if mobile
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  return isMobile;
+};
+
 export default function AITrend() {
   const navigate = useNavigate();
   const { conversationId } = useParams();
   const { user, profile } = useAuth();
+  const isMobile = useIsMobile();
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -575,8 +681,7 @@ export default function AITrend() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile); // Closed by default on mobile
   const [activeTab, setActiveTab] = useState("chat");
   const [trendingGames, setTrendingGames] = useState<TrendingGame[]>([]);
   const [trendHistory, setTrendHistory] = useState<TrendHistory[]>([]);
@@ -594,6 +699,11 @@ export default function AITrend() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Update sidebar state when mobile changes
+  useEffect(() => {
+    setIsSidebarOpen(!isMobile);
+  }, [isMobile]);
 
   // Check admin authentication
   useEffect(() => {
@@ -669,7 +779,6 @@ export default function AITrend() {
 
   const generateSmartSuggestions = async (lastMessage: string, allMessages: Message[]) => {
     try {
-      // Get conversation context
       const context = allMessages.slice(-4).map(m => `${m.role}: ${m.content.slice(0, 100)}`).join('\n');
       
       const response = await fetch(CHAT_URL, {
@@ -924,6 +1033,9 @@ ${context}
 لكل لعبة استخدم Steam CDN:
 https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
 
+أو استخدم IGDB:
+https://images.igdb.com/igdb/image/upload/t_cover_big/[IMAGE_ID].jpg
+
 أرجع JSON فقط:
 [{"name": "Game", "image": "URL", "genres": ["Action"], "platform": "PC"}]`
           }],
@@ -998,8 +1110,24 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
       return;
     }
 
+    setInput("");
+    setIsLoading(true);
+
+    // Create user message with unique ID
+    const userMsgId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const tempUserMsg: Message = {
+      id: userMsgId,
+      role: "user",
+      content: textToSend,
+      created_at: new Date().toISOString(),
+    };
+    
+    // Add user message immediately
+    setMessages(prev => [...prev, tempUserMsg]);
+
     let convId = currentConversation;
 
+    // Only create conversation after first message
     if (!convId) {
       const { data, error } = await supabase
         .from("ai_conversations")
@@ -1009,6 +1137,7 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
 
       if (error || !data) {
         toast.error("حدث خطأ");
+        setIsLoading(false);
         return;
       }
 
@@ -1019,18 +1148,15 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
       setPendingConversation(false);
     }
 
-    setInput("");
-    setIsLoading(true);
-
-    const userMsgId = `user-${Date.now()}`;
-    const tempUserMsg: Message = {
-      id: userMsgId,
+    // Save user message to DB
+    await supabase.from("ai_messages").insert({
+      conversation_id: convId,
       role: "user",
       content: textToSend,
-      created_at: new Date().toISOString(),
-    };
-    
-    const loadingMsgId = `loading-${Date.now()}`;
+    });
+
+    // Create loading message for AI
+    const loadingMsgId = `loading-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const loadingMsg: Message = {
       id: loadingMsgId,
       role: "assistant",
@@ -1039,17 +1165,16 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
       isAnimating: true,
     };
     
-    setMessages(prev => [...prev, tempUserMsg, loadingMsg]);
-
-    await supabase.from("ai_messages").insert({
-      conversation_id: convId,
-      role: "user",
-      content: textToSend,
-    });
+    setMessages(prev => [...prev, loadingMsg]);
 
     let assistantContent = "";
 
     try {
+      // Get previous messages excluding the loading one
+      const previousMessages = messages
+        .filter(m => !m.id.startsWith('loading-'))
+        .map(m => ({ role: m.role, content: m.content }));
+
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
@@ -1057,10 +1182,7 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
-          messages: messages
-            .filter(m => !m.id.startsWith('loading-'))
-            .map(m => ({ role: m.role, content: m.content }))
-            .concat([{ role: "user", content: textToSend }]),
+          messages: [...previousMessages, { role: "user", content: textToSend }],
           userContext: {
             name: profile?.first_name || "مستخدم",
             email: user.email,
@@ -1110,12 +1232,14 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
         }
       }
 
+      // Save AI message to DB
       await supabase.from("ai_messages").insert({
         conversation_id: convId,
         role: "assistant",
         content: assistantContent,
       });
 
+      // Generate title after first exchange
       const allMessages = [...messages, tempUserMsg, { ...loadingMsg, content: assistantContent }];
       if (allMessages.filter(m => m.role === "user").length <= 2) {
         generateConversationTitle(allMessages, convId);
@@ -1132,7 +1256,7 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
       setMessages(prev => 
         prev.map(msg => 
           msg.id === loadingMsgId 
-            ? { ...msg, content: "عذراً، حدث خطأ.", isAnimating: false }
+            ? { ...msg, content: "عذراً، حدث خطأ. حاول مرة أخرى.", isAnimating: false }
             : msg
         )
       );
@@ -1151,6 +1275,10 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
     inputRef.current?.focus();
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
   const filteredTrendingGames = trendingGames.filter(game =>
@@ -1249,83 +1377,61 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
       {/* Sidebar */}
       <div className={cn(
         "fixed md:relative z-50 h-screen bg-[#111118]/90 backdrop-blur-3xl border-r border-white/5 transition-all duration-500 flex flex-col overflow-hidden",
-        isSidebarOpen ? isSidebarCollapsed ? "w-20" : "w-80" : "w-0 md:w-20"
+        isSidebarOpen ? "w-80" : "w-0 md:w-0"
       )}>
         <div className="p-4 border-b border-white/5 flex items-center justify-between min-h-[76px]">
-          {(!isSidebarCollapsed && isSidebarOpen) ? (
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-[0.875rem] bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 flex-shrink-0">
-                <img src="/favicon.png" alt="KTM" className="w-6 h-6" />
-              </div>
-              <span className="font-bold text-lg bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent whitespace-nowrap">
-                AI Trend
-              </span>
-            </div>
-          ) : (
-            <div className="w-11 h-11 mx-auto rounded-[0.875rem] bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={toggleSidebar}>
+            <div className="w-11 h-11 rounded-[0.875rem] bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 flex-shrink-0">
               <img src="/favicon.png" alt="KTM" className="w-6 h-6" />
             </div>
-          )}
+            <span className="font-bold text-lg bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent whitespace-nowrap">
+              AI Trend
+            </span>
+          </div>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => isSidebarOpen ? setIsSidebarCollapsed(!isSidebarCollapsed) : (setIsSidebarOpen(true), setIsSidebarCollapsed(false))}
+            onClick={toggleSidebar}
             className="hover:bg-white/5 text-gray-400 hover:text-white rounded-xl flex-shrink-0 h-9 w-9"
           >
-            {isSidebarCollapsed || !isSidebarOpen ? <Menu className="w-4 h-4" /> : <X className="w-4 h-4" />}
+            <X className="w-4 h-4" />
           </Button>
         </div>
 
-        {!isSidebarCollapsed && isSidebarOpen && (
-          <div className="p-3 border-b border-white/5">
-            <div className="flex gap-1.5 bg-white/5 p-1 rounded-xl">
-              <button
-                onClick={() => setActiveTab("chat")}
-                className={cn(
-                  "flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2",
-                  activeTab === "chat"
-                    ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <MessageSquare className="w-4 h-4" />
-                المحادثات
-              </button>
-              <button
-                onClick={() => setActiveTab("trends")}
-                className={cn(
-                  "flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2",
-                  activeTab === "trends"
-                    ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <TrendingUp className="w-4 h-4" />
-                الترند
-              </button>
-            </div>
-          </div>
-        )}
-
-        {(isSidebarCollapsed || !isSidebarOpen) && (
-          <div className="p-2 border-b border-white/5 space-y-1.5">
-            <Button variant="ghost" size="icon" onClick={() => setActiveTab("chat")}
-              className={cn("w-full h-10 rounded-lg", activeTab === "chat" ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white" : "text-gray-400 hover:text-white hover:bg-white/5")}>
+        <div className="p-3 border-b border-white/5">
+          <div className="flex gap-1.5 bg-white/5 p-1 rounded-xl">
+            <button
+              onClick={() => setActiveTab("chat")}
+              className={cn(
+                "flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2",
+                activeTab === "chat"
+                  ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              )}
+            >
               <MessageSquare className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setActiveTab("trends")}
-              className={cn("w-full h-10 rounded-lg", activeTab === "trends" ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white" : "text-gray-400 hover:text-white hover:bg-white/5")}>
+              المحادثات
+            </button>
+            <button
+              onClick={() => setActiveTab("trends")}
+              className={cn(
+                "flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2",
+                activeTab === "trends"
+                  ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              )}
+            >
               <TrendingUp className="w-4 h-4" />
-            </Button>
+              الترند
+            </button>
           </div>
-        )}
+        </div>
 
         <div className="p-3">
           <Button onClick={startNewConversation}
-            className={cn("w-full gap-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 rounded-xl h-12 font-medium shadow-xl shadow-emerald-500/20",
-              (isSidebarCollapsed || !isSidebarOpen) && "justify-center p-2")}>
+            className="w-full gap-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 rounded-xl h-12 font-medium shadow-xl shadow-emerald-500/20">
             <Plus className="w-5 h-5" />
-            {!isSidebarCollapsed && isSidebarOpen && "محادثة جديدة"}
+            محادثة جديدة
           </Button>
         </div>
 
@@ -1339,30 +1445,26 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
                 currentConversation === conv.id ? "bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg" : "bg-white/5")}>
                 <MessageSquare className="w-3.5 h-3.5" />
               </div>
-              {!isSidebarCollapsed && isSidebarOpen && (
-                <>
-                  <span className="flex-1 truncate text-sm text-gray-300">{conv.title}</span>
-                  <Button variant="ghost" size="icon"
-                    className="opacity-0 group-hover:opacity-100 h-8 w-8 hover:bg-red-500/10 hover:text-red-400 rounded-lg transition-all"
-                    onClick={(e) => { e.stopPropagation(); openDeleteDialog(conv.id, conv.title); }}>
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </>
-              )}
+              <span className="flex-1 truncate text-sm text-gray-300">{conv.title}</span>
+              <Button variant="ghost" size="icon"
+                className="opacity-0 group-hover:opacity-100 h-8 w-8 hover:bg-red-500/10 hover:text-red-400 rounded-lg transition-all"
+                onClick={(e) => { e.stopPropagation(); openDeleteDialog(conv.id, conv.title); }}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
             </div>
           ))}
         </div>
 
         <div className="p-3 border-t border-white/5 space-y-1.5">
           <Button variant="ghost" onClick={() => navigate("/ktm-admin-panel")}
-            className={cn("w-full gap-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl h-10", (isSidebarCollapsed || !isSidebarOpen) && "justify-center p-2")}>
+            className="w-full gap-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl h-10">
             <Home className="w-4 h-4" />
-            {!isSidebarCollapsed && isSidebarOpen && "لوحة التحكم"}
+            لوحة التحكم
           </Button>
           <Button variant="ghost" onClick={handleLogout}
-            className={cn("w-full gap-2 text-red-400 hover:bg-red-500/10 rounded-xl h-10", (isSidebarCollapsed || !isSidebarOpen) && "justify-center p-2")}>
+            className="w-full gap-2 text-red-400 hover:bg-red-500/10 rounded-xl h-10">
             <LogOut className="w-4 h-4" />
-            {!isSidebarCollapsed && isSidebarOpen && "خروج"}
+            خروج
           </Button>
         </div>
       </div>
@@ -1486,19 +1588,17 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
         {activeTab === "chat" && (
           <>
             <header className="px-5 py-4 border-b border-white/5 bg-[#111118]/50 backdrop-blur-xl flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="md:hidden hover:bg-white/5 rounded-lg h-9 w-9">
-                <Menu className="w-4 h-4" />
-              </Button>
+              {/* Toggle button - shows logo when sidebar is closed */}
+              <button 
+                onClick={toggleSidebar}
+                className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all"
+              >
+                <img src="/favicon.png" alt="KTM AI" className="w-6 h-6" />
+              </button>
               
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center justify-center shadow-xl shadow-emerald-500/30">
-                  <img src="/favicon.png" alt="KTM AI" className="w-7 h-7" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-white">KTM AI Trend</h1>
-                  <p className="text-xs text-gray-400">مساعدك الذكي • جميع اللغات</p>
-                </div>
+              <div>
+                <h1 className="text-xl font-bold text-white">KTM AI Trend</h1>
+                <p className="text-xs text-gray-400">مساعدك الذكي • جميع اللغات</p>
               </div>
 
               <div className="mr-auto">
@@ -1550,24 +1650,30 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
                 <div className="max-w-4xl mx-auto space-y-6">
                   {messages.map((message, index) => (
                     <div key={message.id}
-                      className={cn("flex gap-4 animate-fade-in", message.role === "user" ? "flex-row-reverse" : "")}
+                      className={cn(
+                        "flex gap-4 animate-fade-in",
+                        message.role === "user" ? "justify-end" : "justify-start"
+                      )}
                       style={{ animationDelay: `${index * 30}ms` }}>
-                      <div className={cn("w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg",
-                        message.role === "assistant" ? "bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-emerald-500/20" : "bg-white/10")}>
-                        {message.role === "assistant" ? (
-                          <img src="/favicon.png" alt="AI" className="w-6 h-6" />
-                        ) : profile?.avatar_url ? (
-                          <img src={profile.avatar_url} alt="User" className="w-full h-full rounded-xl object-cover" />
-                        ) : (
-                          <span className="text-sm font-bold">{profile?.first_name?.[0] || "U"}</span>
-                        )}
-                      </div>
                       
-                      <div className={cn("flex-1", message.role === "user" ? "text-left" : "")}>
-                        <div className={cn("rounded-2xl p-5",
+                      {/* AI Avatar - only show for assistant */}
+                      {message.role === "assistant" && (
+                        <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-emerald-500/20">
+                          <img src="/favicon.png" alt="AI" className="w-6 h-6" />
+                        </div>
+                      )}
+                      
+                      <div className={cn(
+                        "flex flex-col",
+                        message.role === "user" ? "items-end" : "items-start",
+                        message.role === "user" ? "max-w-[75%]" : "max-w-[85%]"
+                      )}>
+                        <div className={cn(
+                          "rounded-2xl p-5",
                           message.role === "assistant"
                             ? "bg-[#111118]/80 border border-white/5 backdrop-blur-xl"
-                            : "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-xl shadow-emerald-500/20 inline-block max-w-[85%]")}>
+                            : "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-xl shadow-emerald-500/20"
+                        )}>
                           {message.role === "assistant" && message.isAnimating && !message.content ? (
                             <div className="flex items-center gap-3">
                               <div className="flex gap-1.5">
@@ -1589,10 +1695,24 @@ https://cdn.akamai.steamstatic.com/steam/apps/[APPID]/header.jpg
                             <span className="whitespace-pre-wrap">{message.content}</span>
                           )}
                         </div>
-                        <div className={cn("text-xs text-gray-500 mt-2", message.role === "user" ? "text-left" : "text-right")}>
+                        <div className={cn(
+                          "text-xs text-gray-500 mt-2",
+                          message.role === "user" ? "text-right" : "text-left"
+                        )}>
                           {new Date(message.created_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
+                      
+                      {/* User Avatar - only show for user */}
+                      {message.role === "user" && (
+                        <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg bg-white/10">
+                          {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} alt="User" className="w-full h-full rounded-xl object-cover" />
+                          ) : (
+                            <span className="text-sm font-bold">{profile?.first_name?.[0] || "U"}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
