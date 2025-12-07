@@ -139,6 +139,18 @@ const languageMap: { [key: string]: string } = {
   typescript: "typescript",
 };
 
+// Escape HTML entities for safe display
+const escapeHtml = (text: string): string => {
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (char) => map[char]);
+};
+
 // Code Block Component with syntax highlighting
 const CodeBlock = ({ 
   code, 
@@ -153,19 +165,26 @@ const CodeBlock = ({
   const normalizedLang = languageMap[language?.toLowerCase()] || "javascript";
   
   useEffect(() => {
+    if (!code) {
+      setHighlightedCode("");
+      return;
+    }
+    
     try {
       // Check if language is supported
       const grammar = Prism.languages[normalizedLang];
-      if (grammar && code) {
+      if (grammar) {
+        // Prism.highlight handles escaping internally
         const highlighted = Prism.highlight(code, grammar, normalizedLang);
         setHighlightedCode(highlighted);
       } else {
-        // Fallback to plain code if language not supported
-        setHighlightedCode(code || "");
+        // Fallback: escape HTML and show as plain text
+        setHighlightedCode(escapeHtml(code));
       }
     } catch (error) {
       console.error("Prism highlighting error:", error);
-      setHighlightedCode(code || "");
+      // Fallback: escape HTML and show as plain text
+      setHighlightedCode(escapeHtml(code));
     }
   }, [code, normalizedLang]);
 
@@ -199,7 +218,7 @@ const CodeBlock = ({
         </Button>
       </div>
       <div className="overflow-auto max-h-[400px] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-        <pre className="p-4 m-0 text-sm leading-relaxed">
+        <pre className="p-4 m-0 text-sm leading-relaxed text-gray-300">
           <code 
             className={`language-${normalizedLang}`}
             dangerouslySetInnerHTML={{ __html: highlightedCode }}
