@@ -25,6 +25,23 @@ export const ACHIEVEMENTS = {
   rater: { name: 'الناقد', icon: '⚖️', description: 'قيّمت أول لعبة' },
   critic: { name: 'الناقد المحترف', icon: '🎬', description: 'قيّمت 10 ألعاب' },
   night_owl: { name: 'بومة الليل', icon: '🦉', description: 'تصفحت الموقع بعد منتصف الليل' },
+  // New achievements
+  streak_30: { name: 'الأسطورة', icon: '👑', description: 'زرت الموقع 30 يوم متتالي' },
+  streak_100: { name: 'الخالد', icon: '⚡', description: 'زرت الموقع 100 يوم متتالي' },
+  super_collector: { name: 'الجامع الأسطوري', icon: '💰', description: 'أضفت 50 لعبة للمفضلة' },
+  master_explorer: { name: 'المستكشف الأعظم', icon: '🗺️', description: 'شاهدت 100 لعبة مختلفة' },
+  chat_master: { name: 'سيد المحادثات', icon: '🎯', description: 'أرسلت 100 رسالة للبوت' },
+  ultra_downloader: { name: 'ملك التحميل', icon: '⬇️', description: 'قمت بتحميل 50 لعبة' },
+  early_bird: { name: 'الصباح الباكر', icon: '🌅', description: 'تصفحت الموقع قبل الفجر' },
+  weekend_warrior: { name: 'محارب نهاية الأسبوع', icon: '🗓️', description: 'تصفحت الموقع في عطلة نهاية الأسبوع' },
+  first_comment: { name: 'المعلق الأول', icon: '✍️', description: 'كتبت أول تعليق' },
+  commenter: { name: 'المعلق النشط', icon: '📝', description: 'كتبت 10 تعليقات' },
+  challenge_starter: { name: 'بداية التحديات', icon: '🎲', description: 'أكملت أول تحدي' },
+  challenge_master: { name: 'سيد التحديات', icon: '🏅', description: 'أكملت 10 تحديات' },
+  verified_user: { name: 'المستخدم الموثق', icon: '✅', description: 'حصلت على شارة التوثيق' },
+  profile_complete: { name: 'الملف المكتمل', icon: '📋', description: 'أكملت بيانات ملفك الشخصي' },
+  avatar_set: { name: 'صورة الملف', icon: '🖼️', description: 'أضفت صورة شخصية' },
+  category_explorer: { name: 'مستكشف الأقسام', icon: '📂', description: 'تصفحت جميع الأقسام' },
 };
 
 export const useAchievements = () => {
