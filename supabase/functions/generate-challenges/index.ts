@@ -7,15 +7,15 @@ const corsHeaders = {
 };
 
 // Challenge types that can be auto-verified
-const CHALLENGE_TYPES = {
-  COMMENT: "comment", // Write a specific comment
-  RATE_GAMES: "rate_games", // Rate X games
-  ADD_FAVORITES: "add_favorites", // Add X games to favorites
-  VIEW_GAMES: "view_games", // View X games
-  AVATAR_CHANGE: "avatar_change", // Change avatar to something specific
-  SEND_MESSAGE: "send_message", // Send a contact message
-  CHANGE_NAME: "change_name", // Change name to something specific
-};
+const CHALLENGE_TYPES = [
+  "comment",
+  "rate_games", 
+  "add_favorites",
+  "view_games",
+  "avatar_change",
+  "send_message",
+  "change_name",
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -33,6 +33,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { userId, batchMode } = await req.json();
+
+    console.log("Generating challenges for user:", userId);
 
     // Calculate expiry time (next 3 AM UTC)
     const now = new Date();
@@ -63,95 +65,96 @@ serve(async (req) => {
       });
     }
 
+    // Delete old expired challenges first
+    await supabase
+      .from("user_challenges")
+      .delete()
+      .lt("expires_at", now.toISOString());
+
     // Get games for reference
     const { data: games } = await supabase
       .from("games")
       .select("id, title, slug")
       .limit(50);
 
-    const gamesList = games?.map(g => g.title).join("، ") || "";
-
-    // Process in batches of 50
-    const batchSize = 50;
     const results: any[] = [];
 
-    for (let i = 0; i < usersToProcess.length; i += batchSize) {
-      const batch = usersToProcess.slice(i, i + batchSize);
+    for (const currentUserId of usersToProcess) {
+      console.log("Processing user:", currentUserId);
       
-      // Get existing challenge hashes for these users
+      // Check if user already has valid challenges
       const { data: existingChallenges } = await supabase
         .from("user_challenges")
-        .select("user_id, challenge_hash")
-        .in("user_id", batch);
+        .select("id")
+        .eq("user_id", currentUserId)
+        .gt("expires_at", now.toISOString());
 
-      const existingHashesByUser: Record<string, Set<string>> = {};
-      existingChallenges?.forEach(c => {
-        if (!existingHashesByUser[c.user_id]) {
-          existingHashesByUser[c.user_id] = new Set();
-        }
-        existingHashesByUser[c.user_id].add(c.challenge_hash);
-      });
+      if (existingChallenges && existingChallenges.length >= 3) {
+        console.log("User already has 3 challenges, skipping");
+        continue;
+      }
 
-      // Generate auto-verifiable challenges using AI
-      const prompt = `أنت مولد تحديات لموقع ألعاب. أنشئ ${batch.length * 3} تحدي قابل للتحقق التلقائي.
+      const neededChallenges = 3 - (existingChallenges?.length || 0);
+      
+      // Get existing challenge hashes to avoid duplicates
+      const { data: allUserChallenges } = await supabase
+        .from("user_challenges")
+        .select("challenge_hash")
+        .eq("user_id", currentUserId);
 
-أنواع التحديات المتاحة (يجب استخدام هذه الأنواع فقط):
+      const existingHashes = new Set(allUserChallenges?.map(c => c.challenge_hash) || []);
 
-1. "comment" - كتابة تعليق بمحتوى محدد وغريب
-   - مثال: اكتب تعليقًا في أي لعبة يقول: "أنا بطاطس محشية 🥔"
-   - مثال: اكتب تعليق يحتوي على عبارة: "الدجاج المقلي يحكم العالم 🍗👑"
+      // Generate challenges using AI
+      const prompt = `أنت مولد تحديات لموقع ألعاب. أنشئ ${neededChallenges} تحدي قابل للتحقق التلقائي.
 
-2. "rate_games" - تقييم عدد معين من الألعاب
-   - مثال: قيّم 3 ألعاب بـ 5 نجوم
-   - مثال: قيّم لعبتين مختلفتين اليوم
+أنواع التحديات المتاحة:
 
-3. "add_favorites" - إضافة ألعاب للمفضلة
-   - مثال: أضف 4 ألعاب جديدة لقائمة المفضلة
-   - مثال: أضف لعبة من فئة Action للمفضلة
+1. "comment" - كتابة تعليق بمحتوى غريب ومضحك
+   - مثال: اكتب تعليقًا يحتوي على: "أنا بطاطس محشية 🥔"
+   - مثال: اكتب تعليق فيه: "الدجاج المقلي يحكم العالم 🍗👑"
 
-4. "view_games" - مشاهدة صفحات ألعاب
-   - مثال: شاهد 5 صفحات ألعاب مختلفة
-   - مثال: استكشف 3 ألعاب من فئة Adventure
+2. "rate_games" - تقييم عدد من الألعاب
+   - مثال: قيّم 3 ألعاب مختلفة ⭐
+   - مثال: قيّم لعبتين بـ 5 نجوم
 
-5. "avatar_change" - تغيير صورة الملف الشخصي
-   - مثال: غيّر صورتك لصورة قطة ترتدي نظارة شمسية 🐱🕶️
+3. "add_favorites" - إضافة ألعاب للمفضلة  
+   - مثال: أضف 3 ألعاب للمفضلة ❤️
+   - مثال: أضف لعبة جديدة لقائمة المفضلة
+
+4. "avatar_change" - تغيير صورة الملف الشخصي لوصف محدد
+   - مثال: غيّر صورتك لصورة قطة ترتدي نظارة 🐱🕶️
    - مثال: غيّر الأفتار لصورة بطريق يأكل بيتزا 🐧🍕
-   - مثال: حط صورة دب يلعب كرة قدم ⚽🐻
 
-6. "send_message" - إرسال رسالة للدعم
-   - مثال: أرسل رسالة شكر للفريق
-   - مثال: اقترح لعبة جديدة عبر نموذج التواصل
-
-7. "change_name" - تغيير الاسم الأول والأخير لشيء غريب ومضحك
-   - مثال: غيّر اسمك الأول إلى "بطريق" واسمك الأخير إلى "راقص" 🐧💃
-   - مثال: غيّر اسمك الأول إلى "موزة" واسمك الأخير إلى "طائرة" 🍌✈️
-   - مثال: غيّر اسمك الأول إلى "فلافل" واسمك الأخير إلى "كونية" 🧆🌌
+5. "change_name" - تغيير الاسم الأول والأخير لشيء غريب
+   - مثال: غيّر اسمك الأول إلى 'كنغر' واسمك الأخير إلى 'متمركش' 🦘🕺
+   - مثال: غيّر اسمك الأول إلى 'موزة' واسمك الأخير إلى 'طائرة' 🍌✈️
 
 قواعد مهمة:
-- كل تحدي يجب أن يكون فريد وغير مكرر
-- تحديات التعليقات يجب أن تكون غريبة ومضحكة جداً ومع إيموجي
-- تحديات الأفتار يجب أن تكون وصف دقيق لصورة غريبة وواضحة
-- تحديات تغيير الاسم يجب أن تكون أسماء مضحكة وغريبة جداً
-- ضمّن الـ verification_data وهو البيانات المطلوبة للتحقق
+- كل تحدي يجب أن يكون فريد ومختلف
+- استخدم إيموجي في النص
+- نوّع بين أنواع التحديات المختلفة
+- للتعليقات: النص المطلوب يجب أن يكون غريب ومضحك
+- للأفتار: الوصف يجب أن يكون واضح ومحدد
+- لتغيير الاسم: اختر أسماء مضحكة وغريبة جداً
 
-أرجع JSON array فقط بهذا الشكل:
+أرجع JSON array فقط بهذا الشكل بالضبط:
 [
   {
-    "text": "نص التحدي الظاهر للمستخدم",
+    "text": "نص التحدي كامل مع الإيموجي",
     "description": "وصف قصير",
-    "type": "comment|rate_games|add_favorites|view_games|avatar_change|send_message|change_name",
+    "type": "comment أو rate_games أو add_favorites أو avatar_change أو change_name",
     "verification_data": {
-      "required_text": "النص المطلوب للتعليق (فقط لـ comment)",
+      "required_text": "النص المطلوب (فقط لـ comment)",
       "required_count": 3,
-      "avatar_description": "وصف الصورة المطلوبة (فقط لـ avatar_change)",
-      "required_first_name": "الاسم الأول المطلوب (فقط لـ change_name)",
-      "required_last_name": "الاسم الأخير المطلوب (فقط لـ change_name)"
+      "avatar_description": "وصف الصورة (فقط لـ avatar_change)",
+      "required_first_name": "الاسم الأول (فقط لـ change_name)",
+      "required_last_name": "الاسم الأخير (فقط لـ change_name)"
     }
   }
-]
+]`;
 
-أنشئ ${batch.length * 3} تحدي متنوع وغريب. تأكد من تنويع أنواع التحديات.`;
-
+      console.log("Calling AI API for challenges...");
+      
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -161,20 +164,23 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
-            { role: "system", content: "أنت مساعد يكتب تحديات ألعاب إبداعية وغريبة باللغة العربية. أرجع JSON فقط." },
+            { role: "system", content: "أنت مساعد يكتب تحديات ألعاب إبداعية وغريبة باللغة العربية. أرجع JSON فقط بدون أي نص إضافي." },
             { role: "user", content: prompt }
           ],
         }),
       });
 
       if (!aiResponse.ok) {
-        console.error("AI API error:", await aiResponse.text());
+        const errorText = await aiResponse.text();
+        console.error("AI API error:", errorText);
         continue;
       }
 
       const aiData = await aiResponse.json();
       let challengesText = aiData.choices?.[0]?.message?.content || "[]";
       
+      console.log("AI response:", challengesText);
+
       // Extract JSON from response
       const jsonMatch = challengesText.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
@@ -190,46 +196,46 @@ serve(async (req) => {
         continue;
       }
 
-      // Assign 3 unique challenges to each user
-      let challengeIndex = 0;
-      for (const currentUserId of batch) {
-        const userExistingHashes = existingHashesByUser[currentUserId] || new Set();
-        const userChallenges: any[] = [];
+      console.log("Parsed challenges:", challenges);
 
-        while (userChallenges.length < 3 && challengeIndex < challenges.length) {
-          const challenge = challenges[challengeIndex];
-          const hash = btoa(encodeURIComponent(challenge.text + Date.now())).slice(0, 32);
-          
-          // Ensure no duplicates
-          if (!userExistingHashes.has(hash)) {
-            userChallenges.push({
-              user_id: currentUserId,
-              challenge_text: challenge.text,
-              challenge_description: JSON.stringify({
-                description: challenge.description,
-                type: challenge.type,
-                verification_data: challenge.verification_data
-              }),
-              challenge_type: challenge.type || "comment",
-              challenge_hash: hash,
-              expires_at: expiresAt.toISOString(),
-            });
-            userExistingHashes.add(hash);
-          }
-          challengeIndex++;
+      // Create challenge records
+      const userChallenges: any[] = [];
+      
+      for (const challenge of challenges) {
+        if (userChallenges.length >= neededChallenges) break;
+        
+        const hash = btoa(encodeURIComponent(challenge.text + Date.now() + Math.random())).slice(0, 32);
+        
+        if (!existingHashes.has(hash)) {
+          userChallenges.push({
+            user_id: currentUserId,
+            challenge_text: challenge.text,
+            challenge_description: JSON.stringify({
+              description: challenge.description,
+              type: challenge.type,
+              verification_data: challenge.verification_data
+            }),
+            challenge_type: challenge.type || "comment",
+            challenge_hash: hash,
+            expires_at: expiresAt.toISOString(),
+          });
+          existingHashes.add(hash);
         }
+      }
 
-        // Insert challenges
-        if (userChallenges.length > 0) {
-          const { error } = await supabase
-            .from("user_challenges")
-            .insert(userChallenges);
+      // Insert challenges
+      if (userChallenges.length > 0) {
+        console.log("Inserting challenges:", userChallenges.length);
+        
+        const { error } = await supabase
+          .from("user_challenges")
+          .insert(userChallenges);
 
-          if (error) {
-            console.error("Error inserting challenges:", error);
-          } else {
-            results.push({ userId: currentUserId, challengesCreated: userChallenges.length });
-          }
+        if (error) {
+          console.error("Error inserting challenges:", error);
+        } else {
+          results.push({ userId: currentUserId, challengesCreated: userChallenges.length });
+          console.log("Successfully created challenges for user:", currentUserId);
         }
       }
     }
