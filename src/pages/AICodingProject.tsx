@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +36,10 @@ import {
   Globe,
   ChevronDown,
   ChevronRight,
-  Folder
+  Folder,
+  Upload,
+  FileUp,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -55,6 +59,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const CODING_CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-coding-chat`;
 
@@ -68,12 +73,20 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   isThinking?: boolean;
+  streamingContent?: string;
 }
 
 interface AIAction {
   type: "thinking" | "reading" | "editing" | "done";
   file?: string;
   line?: number;
+}
+
+interface DuplicateFile {
+  name: string;
+  content: string;
+  language: string;
+  selected: boolean;
 }
 
 // Animation styles
@@ -85,6 +98,8 @@ const animationStyles = `
   @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes line-highlight { 0%, 100% { background-color: rgba(16, 185, 129, 0.15); } 50% { background-color: rgba(16, 185, 129, 0.3); } }
   @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  @keyframes typing-cursor { 0%, 100% { border-color: #10b981; } 50% { border-color: transparent; } }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
   
   .animate-shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); background-size: 200% 100%; animation: shimmer 2s infinite; }
   .animate-pulse-glow { animation: pulse-glow 2s infinite; }
@@ -95,6 +110,10 @@ const animationStyles = `
   .typing-animation span:nth-child(3) { animation-delay: 0.4s; }
   .line-editing { animation: line-highlight 1s ease-in-out infinite; border-left: 3px solid #10b981 !important; }
   .editing-cursor { animation: blink 0.8s infinite; }
+  .typing-cursor-line { animation: typing-cursor 0.8s infinite; border-left: 2px solid #10b981; }
+  .animate-shake { animation: shake 0.3s ease-in-out; }
+  
+  .drop-zone-active { border-color: #10b981 !important; background-color: rgba(16, 185, 129, 0.1) !important; }
 `;
 
 // Generate suggestions based on context
@@ -112,6 +131,21 @@ const generateSuggestions = (lastMessage?: string): string[] => {
   return ["أضف صفحة جديدة", "حسّن الألوان", "أضف محتوى", "أضف JavaScript", "حسّن SEO"];
 };
 
+// Get language from file extension
+const getLanguageFromExtension = (filename: string): string => {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'html': return 'html';
+    case 'css': return 'css';
+    case 'js': return 'javascript';
+    case 'ts': return 'typescript';
+    case 'json': return 'json';
+    case 'md': return 'markdown';
+    case 'txt': return 'text';
+    default: return 'text';
+  }
+};
+
 const AICodingProject = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -127,6 +161,7 @@ const AICodingProject = () => {
   const [currentAction, setCurrentAction] = useState<AIAction | null>(null);
   const [editingFile, setEditingFile] = useState<string | null>(null);
   const [editingLine, setEditingLine] = useState<number | null>(null);
+  const [liveEditContent, setLiveEditContent] = useState<string>("");
   const [editsCount, setEditsCount] = useState(0);
   const [copied, setCopied] = useState(false);
   const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
@@ -137,12 +172,15 @@ const AICodingProject = () => {
   const [isAIEditing, setIsAIEditing] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
   
   // Dialogs
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showNewFileDialog, setShowNewFileDialog] = useState(false);
   const [showDeleteFileDialog, setShowDeleteFileDialog] = useState<number | null>(null);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [duplicateFiles, setDuplicateFiles] = useState<DuplicateFile[]>([]);
   const [newFileName, setNewFileName] = useState("");
   const [publishUsername, setPublishUsername] = useState("");
   const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
@@ -152,6 +190,7 @@ const AICodingProject = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeFile = files[activeFileIndex];
 
@@ -313,6 +352,103 @@ const AICodingProject = () => {
     toast({ title: "تم التصدير كـ ZIP" });
   };
 
+  // Handle file drop / upload
+  const handleFileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    await processUploadedFiles(droppedFiles);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
+    await processUploadedFiles(selectedFiles);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const processUploadedFiles = async (uploadedFiles: File[]) => {
+    const newFilesToAdd: CodeFile[] = [];
+    const duplicatesToCheck: DuplicateFile[] = [];
+
+    for (const file of uploadedFiles) {
+      if (file.name.endsWith('.zip')) {
+        // Handle ZIP file
+        try {
+          const zip = await JSZip.loadAsync(file);
+          const zipFiles = Object.keys(zip.files);
+          
+          for (const fileName of zipFiles) {
+            const zipFile = zip.files[fileName];
+            if (!zipFile.dir) {
+              const content = await zipFile.async('text');
+              const language = getLanguageFromExtension(fileName);
+              const cleanName = fileName.split('/').pop() || fileName;
+              
+              const existingFile = files.find(f => f.name === cleanName);
+              if (existingFile) {
+                duplicatesToCheck.push({ name: cleanName, content, language, selected: true });
+              } else {
+                newFilesToAdd.push({ name: cleanName, content, language });
+              }
+            }
+          }
+        } catch (error) {
+          toast({ title: "فشل في قراءة ملف ZIP", variant: "destructive" });
+        }
+      } else {
+        // Handle regular file
+        try {
+          const content = await file.text();
+          const language = getLanguageFromExtension(file.name);
+          
+          const existingFile = files.find(f => f.name === file.name);
+          if (existingFile) {
+            duplicatesToCheck.push({ name: file.name, content, language, selected: true });
+          } else {
+            newFilesToAdd.push({ name: file.name, content, language });
+          }
+        } catch (error) {
+          toast({ title: `فشل في قراءة الملف: ${file.name}`, variant: "destructive" });
+        }
+      }
+    }
+
+    // Add non-duplicate files immediately
+    if (newFilesToAdd.length > 0) {
+      setFiles(prev => [...prev, ...newFilesToAdd]);
+      toast({ title: `تم إضافة ${newFilesToAdd.length} ملف` });
+    }
+
+    // Show duplicate dialog if there are duplicates
+    if (duplicatesToCheck.length > 0) {
+      setDuplicateFiles(duplicatesToCheck);
+      setShowDuplicateDialog(true);
+    }
+  };
+
+  const handleDuplicateConfirm = () => {
+    const filesToReplace = duplicateFiles.filter(f => f.selected);
+    
+    if (filesToReplace.length > 0) {
+      setFiles(prev => {
+        const newFiles = [...prev];
+        filesToReplace.forEach(file => {
+          const index = newFiles.findIndex(f => f.name === file.name);
+          if (index !== -1) {
+            newFiles[index] = { name: file.name, content: file.content, language: file.language };
+          }
+        });
+        return newFiles;
+      });
+      toast({ title: `تم استبدال ${filesToReplace.length} ملف` });
+    }
+    
+    setShowDuplicateDialog(false);
+    setDuplicateFiles([]);
+  };
+
   // Publish website
   const publishWebsite = async () => {
     if (!user || !projectId || !publishUsername.trim() || !isUsernameAvailable) return;
@@ -397,8 +533,9 @@ const AICodingProject = () => {
     setIsLoading(true);
     setIsAIEditing(true);
     setEditsCount(0);
+    setLiveEditContent("");
     
-    setMessages(prev => [...prev, { role: "assistant", content: "", isThinking: true }]);
+    setMessages(prev => [...prev, { role: "assistant", content: "", isThinking: true, streamingContent: "" }]);
     setCurrentAction({ type: "thinking" });
 
     try {
@@ -449,6 +586,9 @@ const AICodingProject = () => {
               fullContent += content;
               lineCount += (content.match(/\n/g) || []).length;
               
+              // Update live edit content
+              setLiveEditContent(fullContent);
+              
               const fileMatch = fullContent.match(/```(\w+)?:?([^\n]*)\n/);
               if (fileMatch) {
                 const fileName = fileMatch[2]?.trim() || "ملف جديد";
@@ -456,6 +596,17 @@ const AICodingProject = () => {
                 setEditingFile(fileName);
                 setEditingLine(lineCount);
               }
+              
+              // Update streaming message
+              setMessages(prev => {
+                const lastIndex = prev.length - 1;
+                if (prev[lastIndex]?.isThinking) {
+                  const newMessages = [...prev];
+                  newMessages[lastIndex] = { ...newMessages[lastIndex], streamingContent: fullContent };
+                  return newMessages;
+                }
+                return prev;
+              });
             }
           } catch { }
         }
@@ -468,13 +619,14 @@ const AICodingProject = () => {
         const file = newFiles[i];
         setCurrentAction({ type: "editing", file: file.name });
         setEditingFile(file.name);
-        await new Promise(resolve => setTimeout(resolve, 200));
-        addNewFile(file.name, file.content, file.language);
         await new Promise(resolve => setTimeout(resolve, 100));
+        addNewFile(file.name, file.content, file.language);
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       setEditingFile(null);
       setEditingLine(null);
+      setLiveEditContent("");
       setMessages(prev => [...prev, { role: "assistant", content: message || fullContent }]);
       setCurrentAction({ type: "done" });
       setTimeout(() => setCurrentAction(null), 2000);
@@ -494,6 +646,7 @@ const AICodingProject = () => {
       setIsAIEditing(false);
       setEditingFile(null);
       setEditingLine(null);
+      setLiveEditContent("");
     }
   };
 
@@ -505,6 +658,14 @@ const AICodingProject = () => {
     setFiles(newFiles);
   };
 
+  // Handle input key
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
   // Get file icon
   const getFileIcon = (name: string) => {
     if (name.endsWith('.html')) return '🌐';
@@ -513,10 +674,19 @@ const AICodingProject = () => {
     return '📄';
   };
 
+  // Get live editing content for display
+  const getLiveEditingDisplay = () => {
+    if (!liveEditContent || !editingFile) return null;
+    
+    // Extract current file content from streaming
+    const match = liveEditContent.match(new RegExp(`\`\`\`\\w*:?${editingFile}?[^\\n]*\\n([\\s\\S]*?)(?:\`\`\`|$)`));
+    return match ? match[1] : liveEditContent.split('\n').slice(-20).join('\n');
+  };
+
   // Loading state
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a1a] via-[#0f1629] to-[#0a0a1a] flex items-center justify-center">
+      <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">
         <style>{animationStyles}</style>
         <Loader2 className="w-12 h-12 animate-spin text-emerald-400" />
       </div>
@@ -524,11 +694,11 @@ const AICodingProject = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a1a] via-[#0f1629] to-[#0a0a1a] flex flex-col">
+    <div className="min-h-screen bg-[#1a1a1a] flex flex-col">
       <style>{animationStyles}</style>
       
       {/* Header */}
-      <header className="border-b border-white/10 bg-black/40 backdrop-blur-xl z-10">
+      <header className="border-b border-white/10 bg-[#1e1e1e] z-10">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate("/ktm/ai/coding")} className="text-gray-400 hover:text-white">
@@ -540,7 +710,7 @@ const AICodingProject = () => {
               </div>
               <div>
                 <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} className="bg-transparent border-none text-lg font-bold text-white p-0 h-auto focus-visible:ring-0 w-48" />
-                <p className="text-xs text-gray-400">GPT-5 Powered</p>
+                <p className="text-xs text-gray-500">GPT-5 Powered</p>
               </div>
             </div>
           </div>
@@ -586,16 +756,16 @@ const AICodingProject = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Chat Panel */}
-        <div className="w-[320px] border-r border-white/10 flex flex-col bg-black/20">
-          <div className="p-4 border-b border-white/10 bg-black/30">
+        {/* Chat Panel - Wider */}
+        <div className="w-[400px] border-r border-white/10 flex flex-col bg-[#1e1e1e]">
+          <div className="p-4 border-b border-white/10 bg-[#252525]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="font-semibold text-white">KTM Coder</h3>
-                <p className="text-xs text-gray-400">مطور ويب محترف</p>
+                <p className="text-xs text-gray-500">مطور ويب محترف</p>
               </div>
             </div>
           </div>
@@ -604,7 +774,7 @@ const AICodingProject = () => {
             <div className="space-y-4">
               {messages.length === 0 && (
                 <div className="text-center py-8 animate-slide-up">
-                  <p className="text-sm text-gray-400">اكتب طلبك وسأبرمجه لك فوراً</p>
+                  <p className="text-sm text-gray-500">اكتب طلبك وسأبرمجه لك فوراً</p>
                 </div>
               )}
               {messages.map((msg, i) => (
@@ -612,12 +782,19 @@ const AICodingProject = () => {
                   <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0", msg.role === "user" ? "bg-gradient-to-br from-emerald-500 to-cyan-500" : "bg-gradient-to-br from-purple-500 to-pink-500")}>
                     {msg.role === "user" ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
                   </div>
-                  <div className={cn("max-w-[85%] rounded-2xl px-4 py-3", msg.role === "user" ? "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-50 border border-emerald-500/30" : "bg-white/5 text-gray-200 border border-white/10")}>
+                  <div className={cn("max-w-[85%] rounded-2xl px-4 py-3", msg.role === "user" ? "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-50 border border-emerald-500/30" : "bg-[#2a2a2a] text-gray-200 border border-white/5")}>
                     {msg.isThinking && currentAction ? (
-                      <div className="flex items-center gap-2">
-                        {currentAction.type === "thinking" && <><Brain className="w-4 h-4 text-purple-400 animate-pulse" /><span className="text-sm text-purple-300">يفكر...</span></>}
-                        {currentAction.type === "reading" && <><BookOpen className="w-4 h-4 text-blue-400 animate-pulse" /><span className="text-sm text-blue-300">يقرأ...</span></>}
-                        {currentAction.type === "editing" && <><Pencil className="w-4 h-4 text-amber-400 animate-pulse" /><span className="text-sm text-amber-300">يحرر {currentAction.file}...</span></>}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          {currentAction.type === "thinking" && <><Brain className="w-4 h-4 text-purple-400 animate-pulse" /><span className="text-sm text-purple-300">يفكر...</span></>}
+                          {currentAction.type === "reading" && <><BookOpen className="w-4 h-4 text-blue-400 animate-pulse" /><span className="text-sm text-blue-300">يقرأ...</span></>}
+                          {currentAction.type === "editing" && <><Pencil className="w-4 h-4 text-amber-400 animate-pulse" /><span className="text-sm text-amber-300">يحرر {currentAction.file}...</span></>}
+                        </div>
+                        {msg.streamingContent && (
+                          <div className="text-xs text-gray-400 font-mono bg-black/30 rounded p-2 max-h-32 overflow-auto">
+                            {msg.streamingContent.slice(-300)}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
@@ -641,10 +818,18 @@ const AICodingProject = () => {
             </div>
           )}
 
-          <div className="p-4 border-t border-white/10 bg-black/30">
+          <div className="p-4 border-t border-white/10 bg-[#252525]">
             <div className="flex gap-2">
-              <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()} placeholder="اكتب طلبك..." className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-gray-500" disabled={isLoading} />
-              <Button onClick={sendMessage} disabled={isLoading || !input.trim()} className="bg-gradient-to-r from-emerald-500 to-cyan-500">
+              <Textarea 
+                value={input} 
+                onChange={(e) => setInput(e.target.value)} 
+                onKeyDown={handleInputKeyDown}
+                placeholder="اكتب طلبك... (Shift+Enter لسطر جديد)" 
+                className="flex-1 bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-600 resize-none min-h-[44px] max-h-32" 
+                disabled={isLoading}
+                rows={1}
+              />
+              <Button onClick={sendMessage} disabled={isLoading || !input.trim()} className="bg-gradient-to-r from-emerald-500 to-cyan-500 self-end">
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
@@ -653,7 +838,7 @@ const AICodingProject = () => {
 
         {/* Preview & Code Panel */}
         <div className="flex-1 flex flex-col">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-black/30">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-[#252525]">
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => setShowCodeView(false)} className={cn("gap-2", !showCodeView ? "bg-emerald-500/20 text-emerald-400" : "text-gray-400 hover:text-white")}>
                 <Eye className="w-4 h-4" />Preview
@@ -666,6 +851,17 @@ const AICodingProject = () => {
             <div className="flex items-center gap-2">
               {showCodeView && (
                 <>
+                  <input 
+                    ref={fileInputRef}
+                    type="file" 
+                    multiple 
+                    accept=".html,.css,.js,.ts,.json,.md,.txt,.zip"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="text-gray-400 hover:text-white h-8 w-8" title="رفع ملفات">
+                    <Upload className="w-4 h-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={copyCode} className="text-gray-400 hover:text-white h-8 w-8">
                     {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   </Button>
@@ -686,9 +882,14 @@ const AICodingProject = () => {
           <div className="flex-1 flex overflow-hidden">
             {/* Code View with File Sidebar */}
             {showCodeView ? (
-              <div className="flex-1 flex">
+              <div 
+                className={cn("flex-1 flex", isDragging && "drop-zone-active")}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleFileDrop}
+              >
                 {/* File Sidebar inside Code tab */}
-                <div className={cn("border-r border-white/10 bg-[#0d1117] flex flex-col transition-all", sidebarOpen ? "w-48" : "w-12")}>
+                <div className={cn("border-r border-white/10 bg-[#1e1e1e] flex flex-col transition-all", sidebarOpen ? "w-52" : "w-12")}>
                   <div className="p-2 border-b border-white/10 flex items-center justify-between">
                     <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-400 hover:text-white h-8 w-8">
                       {sidebarOpen ? <ChevronRight className="w-4 h-4" /> : <Folder className="w-4 h-4" />}
@@ -726,8 +927,19 @@ const AICodingProject = () => {
                 </div>
 
                 {/* Code Editor */}
-                <div className="flex-1 bg-[#0d1117] overflow-auto">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-black/50 border-b border-white/10">
+                <div className="flex-1 bg-[#1a1a1a] overflow-auto relative">
+                  {/* Drag overlay */}
+                  {isDragging && (
+                    <div className="absolute inset-0 bg-emerald-500/10 border-2 border-dashed border-emerald-500 z-50 flex items-center justify-center">
+                      <div className="text-center animate-pulse">
+                        <FileUp className="w-12 h-12 text-emerald-400 mx-auto mb-2" />
+                        <p className="text-emerald-400 font-medium">أفلت الملفات هنا</p>
+                        <p className="text-gray-500 text-sm">يدعم ZIP, HTML, CSS, JS</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2 px-4 py-2 bg-[#252525] border-b border-white/10">
                     <FileCode className="w-4 h-4 text-emerald-400" />
                     <span className="text-sm text-white font-medium">{activeFile?.name}</span>
                     {isAIEditing && editingFile === activeFile?.name && (
@@ -737,19 +949,26 @@ const AICodingProject = () => {
                       </span>
                     )}
                   </div>
+                  
                   <div className="relative">
                     <textarea
                       ref={codeRef}
-                      value={activeFile?.content || ""}
+                      value={isAIEditing && editingFile === activeFile?.name && liveEditContent ? (getLiveEditingDisplay() || activeFile?.content || "") : (activeFile?.content || "")}
                       onChange={(e) => handleCodeChange(e.target.value)}
                       disabled={isAIEditing}
-                      className={cn("w-full min-h-[calc(100vh-180px)] p-4 bg-transparent text-gray-300 font-mono text-sm resize-none focus:outline-none", isAIEditing && "opacity-70 cursor-not-allowed")}
+                      className={cn(
+                        "w-full min-h-[calc(100vh-180px)] p-4 bg-transparent text-gray-300 font-mono text-sm resize-none focus:outline-none",
+                        isAIEditing && "opacity-70 cursor-not-allowed",
+                        isAIEditing && editingFile === activeFile?.name && "typing-cursor-line"
+                      )}
                       spellCheck={false}
                       style={{ tabSize: 2 }}
                     />
                     {isAIEditing && editingFile === activeFile?.name && (
                       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                        <div className="animate-pulse bg-emerald-500/5 h-6 w-full" style={{ marginTop: `${(editingLine || 1) * 24}px` }} />
+                        <div className="animate-pulse bg-emerald-500/10 h-6 w-full absolute" style={{ top: `${((editingLine || 1) * 24) + 48}px` }}>
+                          <div className="h-full w-1 bg-emerald-400 animate-pulse absolute left-0" />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -765,14 +984,14 @@ const AICodingProject = () => {
 
       {/* New File Dialog */}
       <Dialog open={showNewFileDialog} onOpenChange={setShowNewFileDialog}>
-        <DialogContent className="bg-[#1a1a2e] border-white/10">
+        <DialogContent className="bg-[#252525] border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2"><Plus className="w-5 h-5 text-emerald-400" />ملف جديد</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Input value={newFileName} onChange={(e) => setNewFileName(e.target.value)} placeholder="اسم الملف (مثال: page.html)" className="bg-white/5 border-white/10 text-white" />
+            <Input value={newFileName} onChange={(e) => setNewFileName(e.target.value)} placeholder="اسم الملف (مثال: page.html)" className="bg-[#1e1e1e] border-white/10 text-white" />
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowNewFileDialog(false)} className="flex-1 border-white/10 text-gray-300">إلغاء</Button>
+              <Button variant="outline" onClick={() => setShowNewFileDialog(false)} className="flex-1 border-white/10 text-gray-300 hover:bg-white/5">إلغاء</Button>
               <Button onClick={() => addNewFile(newFileName)} disabled={!newFileName.trim()} className="flex-1 bg-emerald-500 hover:bg-emerald-600">إنشاء</Button>
             </div>
           </div>
@@ -781,7 +1000,7 @@ const AICodingProject = () => {
 
       {/* Delete File Dialog */}
       <AlertDialog open={showDeleteFileDialog !== null} onOpenChange={() => setShowDeleteFileDialog(null)}>
-        <AlertDialogContent className="bg-[#1a1a2e] border-white/10">
+        <AlertDialogContent className="bg-[#252525] border-white/10">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">حذف الملف؟</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">سيتم حذف هذا الملف نهائياً.</AlertDialogDescription>
@@ -793,16 +1012,76 @@ const AICodingProject = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Duplicate Files Dialog */}
+      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <DialogContent className="bg-[#252525] border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-400" />
+              ملفات موجودة مسبقاً
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              الملفات التالية موجودة بالفعل. اختر الملفات التي تريد استبدالها.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-64 overflow-auto py-2">
+            {duplicateFiles.map((file, i) => (
+              <div 
+                key={file.name} 
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-lg border transition-all animate-slide-up",
+                  file.selected 
+                    ? "bg-amber-500/10 border-amber-500/30" 
+                    : "bg-white/5 border-white/10"
+                )}
+                style={{ animationDelay: `${i * 50}ms` }}
+              >
+                <Checkbox 
+                  checked={file.selected}
+                  onCheckedChange={(checked) => {
+                    setDuplicateFiles(prev => prev.map((f, idx) => 
+                      idx === i ? { ...f, selected: checked as boolean } : f
+                    ));
+                  }}
+                  className="border-white/20"
+                />
+                <span className="text-lg">{getFileIcon(file.name)}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{file.name}</p>
+                  <p className="text-gray-500 text-xs">{file.language}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => { setShowDuplicateDialog(false); setDuplicateFiles([]); }} 
+              className="flex-1 border-white/10 text-gray-300 hover:bg-white/5"
+            >
+              تخطي الكل
+            </Button>
+            <Button 
+              onClick={handleDuplicateConfirm} 
+              disabled={!duplicateFiles.some(f => f.selected)}
+              className="flex-1 bg-amber-500 hover:bg-amber-600"
+            >
+              استبدال المحدد ({duplicateFiles.filter(f => f.selected).length})
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Publish Dialog */}
       <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
-        <DialogContent className="bg-[#1a1a2e] border-white/10">
+        <DialogContent className="bg-[#252525] border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2"><Globe className="w-5 h-5 text-emerald-400" />نشر الموقع</DialogTitle>
             <DialogDescription className="text-gray-400">اختر اسم مستخدم لرابط موقعك</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 bg-black/30 rounded-lg p-3 border border-white/10">
+              <div className="flex items-center gap-2 bg-[#1e1e1e] rounded-lg p-3 border border-white/10">
                 <span className="text-gray-500 text-sm">ktm.lovable.app/website/</span>
                 <Input value={publishUsername} onChange={(e) => setPublishUsername(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ''))} placeholder="username" className="flex-1 bg-transparent border-none text-white p-0 h-auto focus-visible:ring-0" />
                 {isCheckingUsername ? (
@@ -825,14 +1104,14 @@ const AICodingProject = () => {
 
       {/* Share Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-        <DialogContent className="bg-[#1a1a2e] border-white/10">
+        <DialogContent className="bg-[#252525] border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2"><Share2 className="w-5 h-5 text-emerald-400" />مشاركة الموقع</DialogTitle>
             <DialogDescription className="text-gray-400">موقعك منشور ويمكن لأي شخص زيارته</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex gap-2">
-              <Input value={publishedUrl || ""} readOnly className="flex-1 bg-white/5 border-white/10 text-white text-sm" />
+              <Input value={publishedUrl || ""} readOnly className="flex-1 bg-[#1e1e1e] border-white/10 text-white text-sm" />
               <Button onClick={() => { navigator.clipboard.writeText(publishedUrl || ""); toast({ title: "تم النسخ" }); }} className="bg-emerald-500 hover:bg-emerald-600">
                 <Copy className="w-4 h-4" />
               </Button>
