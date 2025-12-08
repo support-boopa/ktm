@@ -68,7 +68,6 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "KTM Launcher",
-      "installerLanguages": ["English", "Arabic"],
       "warningsAsErrors": false,
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
