@@ -11,13 +11,14 @@ import { toast } from "sonner";
 import { 
   Lock, Plus, Trash2, Edit, LogOut, Gamepad2, Search, 
   ChevronLeft, ChevronRight, Eye, BarChart3,
-  Star, X, Mail, Bug, MessageSquare, Image, FolderOpen, Bot, Video, Link2, Youtube
+  Star, X, Mail, Bug, MessageSquare, Image, FolderOpen, Bot, Video
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { MultiImageUpload } from "@/components/admin/MultiImageUpload";
 import { FileUpload, AdditionalFile } from "@/components/admin/FileUpload";
 import { RichTextEditor, parseRichText } from "@/components/admin/RichTextEditor";
+import VideoUpload from "@/components/admin/VideoUpload";
 import {
   Select,
   SelectContent,
@@ -833,34 +834,16 @@ export default function Admin() {
                         
                         {/* Trailer Section */}
                         <div className="space-y-3 p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
-                          <div className="flex items-center gap-2 text-purple-400">
+                          <div className="flex items-center gap-2 text-purple-400 mb-4">
                             <Video className="w-5 h-5" />
                             <span className="font-semibold">تريلر اللعبة</span>
                           </div>
                           
-                          <div>
-                            <Label htmlFor="trailer_url" className="text-sm">رابط الفيديو (MP4 مباشر أو YouTube)</Label>
-                            <div className="flex gap-2 mt-1">
-                              <Input
-                                id="trailer_url"
-                                value={form.trailer_url}
-                                onChange={(e) => setForm({ ...form, trailer_url: e.target.value })}
-                                dir="ltr"
-                                placeholder="https://youtube.com/watch?v=... أو رابط .mp4"
-                                className="glass-card border-border/50 flex-1"
-                              />
-                            </div>
-                            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Youtube className="w-3 h-3 text-red-400" />
-                                YouTube يُعرض كـ embed
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Link2 className="w-3 h-3 text-emerald-400" />
-                                MP4 مباشر للأداء الأفضل
-                              </span>
-                            </div>
-                          </div>
+                          <VideoUpload
+                            value={form.trailer_url}
+                            onChange={(url) => setForm({ ...form, trailer_url: url })}
+                            gameSlug={form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}
+                          />
                         </div>
                       </div>
 
