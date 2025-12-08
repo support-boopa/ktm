@@ -27,6 +27,12 @@ interface LaunchResult {
   installPath?: string;
 }
 
+interface WebsiteGame {
+  id: string;
+  title: string;
+  slug: string;
+}
+
 interface ElectronAPI {
   minimize: () => void;
   maximize: () => void;
@@ -44,6 +50,7 @@ interface ElectronAPI {
   uninstallGame: (gameId: string) => Promise<{ success: boolean; error?: string }>;
   openFolder: (path: string) => Promise<boolean>;
   selectExe: (gameId: string) => Promise<{ success: boolean; exePath?: string; error?: string }>;
+  scanGamesFolder: (websiteGames: WebsiteGame[]) => Promise<{ success: boolean; games?: InstalledGame[]; error?: string }>;
   onDownloadProgress: (callback: (data: DownloadProgress) => void) => void;
   onDownloadStatus: (callback: (data: { downloadId: string; gameId: string; status: string }) => void) => void;
   onDownloadComplete: (callback: (data: { downloadId: string; gameId: string; gameTitle: string; installPath: string; exePath: string | null }) => void) => void;
@@ -207,6 +214,15 @@ export const useElectron = () => {
     return window.electronAPI?.openFolder(path);
   }, [isElectron]);
 
+  const scanGamesFolder = useCallback(async (websiteGames: { id: string; title: string; slug: string }[]) => {
+    if (!isElectron) return { success: false };
+    const result = await window.electronAPI?.scanGamesFolder(websiteGames);
+    if (result?.success && result.games) {
+      setInstalledGames(result.games);
+    }
+    return result;
+  }, [isElectron]);
+
   return {
     isElectron,
     downloadPath,
@@ -220,7 +236,8 @@ export const useElectron = () => {
     selectExe,
     uninstallGame,
     isGameInstalled,
-    openFolder
+    openFolder,
+    scanGamesFolder
   };
 };
 

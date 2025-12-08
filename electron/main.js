@@ -416,6 +416,103 @@ ipcMain.handle('get-installed-games', () => installedGames);
 // Get download history
 ipcMain.handle('get-download-history', () => downloadHistory);
 
+// Scan download folder for games and validate against website
+ipcMain.handle('scan-games-folder', async (event, websiteGames) => {
+  try {
+    if (!fs.existsSync(downloadPath)) {
+      return { success: true, games: [] };
+    }
+
+    const folders = fs.readdirSync(downloadPath, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
+
+    const detectedGames = [];
+
+    for (const folderName of folders) {
+      const folderPath = path.join(downloadPath, folderName);
+      
+      // Check if this folder matches a game from the website (by slug)
+      const matchedGame = websiteGames.find(g => g.slug === folderName);
+      
+      if (!matchedGame) {
+        // Game not on website, skip it
+        continue;
+      }
+
+      // Check if there's an exe file in the folder
+      const exePath = findExecutable(folderPath);
+      
+      // Create instructions.txt if it doesn't exist
+      const instructionsPath = path.join(folderPath, 'KTM_تعليمات.txt');
+      if (!fs.existsSync(instructionsPath)) {
+        const instructions = `=== تعليمات تشغيل اللعبة ===
+
+اسم اللعبة: ${matchedGame.title}
+
+إذا لم يتم العثور على ملف التشغيل (.exe) تلقائياً:
+
+1. افتح مجلد اللعبة من المكتبة
+2. ابحث عن ملف .exe الرئيسي للعبة (عادة يكون باسم اللعبة)
+3. عند الضغط على "تشغيل" لأول مرة، سيُطلب منك تحديد ملف .exe
+4. بعد التحديد، سيتم حفظ المسار ولن تحتاج لتحديده مرة أخرى
+
+=== إنشاء اختصار ===
+
+لإنشاء اختصار على سطح المكتب:
+1. ابحث عن ملف .exe الرئيسي داخل المجلد
+2. انقر بزر الماوس الأيمن عليه
+3. اختر "إرسال إلى" > "سطح المكتب (إنشاء اختصار)"
+
+=== ملاحظة ===
+تم تحميل هذه اللعبة من موقع KTM Games
+`;
+        fs.writeFileSync(instructionsPath, instructions, 'utf8');
+      }
+
+      // Check if already in installedGames
+      const existingGame = installedGames.find(g => g.gameId === matchedGame.id);
+      
+      if (!existingGame) {
+        // Add to detected games
+        const gameInfo = {
+          gameId: matchedGame.id,
+          gameTitle: matchedGame.title,
+          gameSlug: matchedGame.slug,
+          installPath: folderPath,
+          exePath: exePath,
+          installedAt: new Date().toISOString(),
+          size: getFolderSize(folderPath)
+        };
+        detectedGames.push(gameInfo);
+        
+        // Add to installedGames
+        installedGames.push(gameInfo);
+      } else {
+        // Update existing game info
+        existingGame.installPath = folderPath;
+        if (!existingGame.exePath || !fs.existsSync(existingGame.exePath)) {
+          existingGame.exePath = exePath;
+        }
+        existingGame.size = getFolderSize(folderPath);
+        detectedGames.push(existingGame);
+      }
+    }
+
+    // Clean up installedGames - remove games that no longer exist in folder
+    installedGames = installedGames.filter(game => {
+      return fs.existsSync(game.installPath);
+    });
+
+    store.set('installedGames', installedGames);
+
+    return { success: true, games: installedGames };
+  } catch (err) {
+    console.error('Scan error:', err);
+    return { success: false, error: err.message };
+  }
+});
+
 // Launch game
 ipcMain.handle('launch-game', async (event, { gameId, exePath }) => {
   const game = installedGames.find(g => g.gameId === gameId);
