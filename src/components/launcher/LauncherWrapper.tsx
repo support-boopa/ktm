@@ -1,4 +1,4 @@
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, useEffect } from 'react';
 import LauncherTitleBar from './LauncherTitleBar';
 import LauncherNav from './LauncherNav';
 import LauncherSettings from './LauncherSettings';
@@ -12,8 +12,18 @@ interface LauncherWrapperProps {
 
 const LauncherWrapper = ({ children }: LauncherWrapperProps) => {
   const { isElectron } = useElectron();
-  const [activeTab, setActiveTab] = useState<'store' | 'downloads' | 'library'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'downloads' | 'library' | 'admin'>('store');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adminIframe, setAdminIframe] = useState<string | null>(null);
+
+  // Handle admin tab navigation
+  useEffect(() => {
+    if (activeTab === 'admin') {
+      setAdminIframe('/ktm-admin-panel');
+    } else {
+      setAdminIframe(null);
+    }
+  }, [activeTab]);
 
   // Always render the same structure to avoid React hooks issues
   if (!isElectron) {
@@ -33,6 +43,15 @@ const LauncherWrapper = ({ children }: LauncherWrapperProps) => {
         {activeTab === 'store' && children}
         {activeTab === 'downloads' && <div className="pt-20"><DownloadsTab /></div>}
         {activeTab === 'library' && <div className="pt-20"><LibraryTab /></div>}
+        {activeTab === 'admin' && (
+          <div className="pt-20 h-[calc(100vh-5rem)]">
+            <iframe 
+              src={adminIframe || '/ktm-admin-panel'} 
+              className="w-full h-full border-0"
+              title="Admin Panel"
+            />
+          </div>
+        )}
       </div>
 
       <LauncherSettings open={settingsOpen} onOpenChange={setSettingsOpen} />

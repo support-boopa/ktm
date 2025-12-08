@@ -66,6 +66,86 @@
   .dark {
     --background: 222 47% 6%;
     --foreground: 210 40% 98%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 187 100% 50%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 260 100% 65%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 12%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 187 100% 50%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 15%;
+    --input: 217 33% 12%;
+    --ring: 187 100% 50%;
+
+    /* Dark Glass Variables */
+    --glass-bg: 222 47% 10%;
+    --glass-border: 217 33% 20%;
+    --glass-highlight: 187 100% 50%;
+    --glass: 222 47% 12%;
+  }
+
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 187 100% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 70% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 40% 94%;
+    --muted-foreground: 215 20% 45%;
+
+    --accent: 187 100% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 85%;
+    --input: 214 32% 90%;
+    --ring: 187 100% 42%;
+
+    /* Light Glass Variables */
+    --glass-bg: 0 0% 100%;
+    --glass-border: 214 32% 85%;
+    --glass-highlight: 187 100% 42%;
+    --glass: 0 0% 98%;
+
+    /* Light Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(187 100% 42%) 0%, hsl(260 70% 55%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 40% 96%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 98%) 0%, hsl(210 40% 96%) 50%, hsl(0 0% 98%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(187 100% 42% / 0.1) 0%, transparent 70%);
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.9) 0%, hsl(210 40% 96% / 0.7) 100%);
+
+    /* Light Shadows */
+    --shadow-neon: 0 0 20px hsl(187 100% 42% / 0.2), 0 0 40px hsl(187 100% 42% / 0.1);
+    --shadow-card: 0 4px 24px hsl(222 47% 11% / 0.08);
+    --shadow-glow: 0 0 40px hsl(187 100% 42% / 0.15);
+    --shadow-glass: 0 4px 24px hsl(222 47% 11% / 0.06), inset 0 1px 0 hsl(0 0% 100% / 0.8);
   }
 }
 
