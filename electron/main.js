@@ -40,8 +40,8 @@ if (!fs.existsSync(downloadPath)) {
 
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
-    width: 700,
-    height: 450,
+    width: 850,
+    height: 550,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -88,7 +88,7 @@ function createMainWindow() {
 
   mainWindow.webContents.setBackgroundThrottling(false);
   
-  // Prevent DevTools from opening via keyboard shortcuts
+  // Prevent DevTools and zoom via keyboard shortcuts
   mainWindow.webContents.on('before-input-event', (event, input) => {
     // Block F12
     if (input.key === 'F12') {
@@ -102,6 +102,14 @@ function createMainWindow() {
     if (input.control && ['U', 'u'].includes(input.key)) {
       event.preventDefault();
     }
+    // Block Ctrl++ and Ctrl+- (zoom)
+    if (input.control && ['+', '-', '=', '_', 'NumpadAdd', 'NumpadSubtract'].includes(input.key)) {
+      event.preventDefault();
+    }
+    // Block Ctrl+0 (reset zoom)
+    if (input.control && input.key === '0') {
+      event.preventDefault();
+    }
   });
   
   mainWindow.webContents.on('did-finish-load', () => {
@@ -112,7 +120,7 @@ function createMainWindow() {
       * { scroll-behavior: auto !important; }
     `);
     
-    // Inject DevTools blocking script
+    // Inject DevTools and zoom blocking script
     mainWindow.webContents.executeJavaScript(`
       // Block right-click context menu
       document.addEventListener('contextmenu', (e) => {
@@ -120,7 +128,7 @@ function createMainWindow() {
         return false;
       }, true);
       
-      // Block keyboard shortcuts
+      // Block keyboard shortcuts including zoom
       document.addEventListener('keydown', (e) => {
         if (e.key === 'F12') {
           e.preventDefault();
@@ -134,7 +142,24 @@ function createMainWindow() {
           e.preventDefault();
           return false;
         }
+        // Block zoom shortcuts
+        if (e.ctrlKey && ['+', '-', '=', '_', '0'].includes(e.key)) {
+          e.preventDefault();
+          return false;
+        }
+        if (e.ctrlKey && (e.key === 'NumpadAdd' || e.key === 'NumpadSubtract')) {
+          e.preventDefault();
+          return false;
+        }
       }, true);
+      
+      // Block mouse wheel zoom
+      document.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) {
+          e.preventDefault();
+          return false;
+        }
+      }, { passive: false });
     `);
   });
 
@@ -148,7 +173,7 @@ function createMainWindow() {
       }
       mainWindow.show();
       mainWindow.focus();
-    }, 5000);
+    }, 7000);
   });
 
   mainWindow.on('closed', () => {
