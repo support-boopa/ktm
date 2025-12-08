@@ -8,6 +8,7 @@ import { useGame, useGames } from "@/hooks/useGames";
 import { parseRichText } from "@/components/admin/RichTextEditor";
 import { ScreenshotGallery } from "@/components/games/ScreenshotGallery";
 import { AdditionalFiles } from "@/components/games/AdditionalFiles";
+import { TrailerPlayer } from "@/components/games/TrailerPlayer";
 import { addViewedGame } from "@/hooks/usePersonalizedRecommendations";
 import { GameChatbot } from "@/components/games/GameChatbot";
 import { FavoriteButton } from "@/components/games/FavoriteButton";
@@ -177,6 +178,21 @@ const GameDetails = () => {
               <div className="text-muted-foreground leading-relaxed mb-8 text-lg">
                 {parseRichText(game.description)}
               </div>
+
+              {/* Trailer Player */}
+              {game.trailer_url && (
+                <div className="mb-8 animate-slide-up">
+                  <h3 className="font-display font-bold text-lg mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    تريلر اللعبة
+                  </h3>
+                  <TrailerPlayer 
+                    url={game.trailer_url} 
+                    title={game.title}
+                    poster={game.background_image || game.image}
+                  />
+                </div>
+              )}
 
               {/* Screenshots Gallery */}
               {game.screenshots && game.screenshots.length > 0 && (
