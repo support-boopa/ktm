@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { Library, Play, Trash2, FolderOpen, Search, HardDrive } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Library, Play, Trash2, FolderOpen, Search, HardDrive, RefreshCw, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useElectron, InstalledGame } from '@/hooks/useElectron';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,9 +26,47 @@ const formatSize = (bytes: number) => {
 };
 
 const LibraryTab = () => {
-  const { installedGames, launchGame, uninstallGame, openFolder } = useElectron();
+  const { installedGames, launchGame, uninstallGame, openFolder, scanGamesFolder, isElectron } = useElectron();
   const [searchQuery, setSearchQuery] = useState('');
   const [gameToUninstall, setGameToUninstall] = useState<InstalledGame | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const navigate = useNavigate();
+
+  // Auto-scan on mount and periodically
+  useEffect(() => {
+    if (isElectron) {
+      scanForGames();
+    }
+  }, [isElectron]);
+
+  const scanForGames = async () => {
+    if (!isElectron || isScanning) return;
+    
+    setIsScanning(true);
+    try {
+      // Fetch all games from website database
+      const { data: websiteGames, error } = await supabase
+        .from('games')
+        .select('id, title, slug');
+      
+      if (error) {
+        console.error('Error fetching games:', error);
+        toast.error('فشل في جلب قائمة الألعاب');
+        return;
+      }
+
+      // Scan folder with website games list
+      const result = await scanGamesFolder(websiteGames || []);
+      
+      if (result?.success) {
+        toast.success('تم فحص المجلد بنجاح');
+      }
+    } catch (err) {
+      console.error('Scan error:', err);
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
   const filteredGames = installedGames.filter((game) =>
     game.gameTitle.toLowerCase().includes(searchQuery.toLowerCase())
@@ -62,6 +102,16 @@ const LibraryTab = () => {
         </h2>
         
         <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={scanForGames}
+            disabled={isScanning}
+            className="gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
+            فحص المجلد
+          </Button>
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <HardDrive className="w-4 h-4" />
             <span>{installedGames.length} ألعاب • {formatSize(totalSize)}</span>
@@ -98,6 +148,7 @@ const LibraryTab = () => {
               onLaunch={() => handleLaunch(game)}
               onOpenFolder={() => openFolder(game.installPath)}
               onUninstall={() => setGameToUninstall(game)}
+              onViewPage={() => navigate(`/${game.gameSlug}`)}
             />
           ))}
         </div>
@@ -127,17 +178,19 @@ const GameCard = ({
   game,
   onLaunch,
   onOpenFolder,
-  onUninstall
+  onUninstall,
+  onViewPage
 }: {
   game: InstalledGame;
   onLaunch: () => void;
   onOpenFolder: () => void;
   onUninstall: () => void;
+  onViewPage: () => void;
 }) => {
   return (
     <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4 space-y-4 animate-fade-in hover:border-primary/50 transition-all group">
       <div className="flex items-start justify-between">
-        <div>
+        <div className="flex-1 cursor-pointer" onClick={onViewPage}>
           <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
             {game.gameTitle}
           </h3>
@@ -145,6 +198,15 @@ const GameCard = ({
             {formatSize(game.size)}
           </p>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onViewPage}
+          className="text-muted-foreground hover:text-primary"
+          title="عرض صفحة اللعبة"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -161,6 +223,7 @@ const GameCard = ({
           size="icon"
           onClick={onOpenFolder}
           className="text-muted-foreground hover:text-foreground"
+          title="فتح المجلد"
         >
           <FolderOpen className="w-4 h-4" />
         </Button>
@@ -170,6 +233,7 @@ const GameCard = ({
           size="icon"
           onClick={onUninstall}
           className="text-muted-foreground hover:text-destructive"
+          title="إلغاء التثبيت"
         >
           <Trash2 className="w-4 h-4" />
         </Button>
