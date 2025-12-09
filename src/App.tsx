@@ -8,6 +8,8 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import LauncherWrapper from "@/components/launcher/LauncherWrapper";
 import { useLiteMode } from "@/hooks/useLiteMode";
+
+// Regular pages
 import Index from "./pages/Index";
 import Games from "./pages/Games";
 import GameDetails from "./pages/GameDetails";
@@ -32,6 +34,18 @@ import AICodingProject from "./pages/AICodingProject";
 import PublishedWebsite from "./pages/PublishedWebsite";
 import NotFound from "./pages/NotFound";
 
+// Lite mode pages
+import LiteIndex from "./pages/lite/LiteIndex";
+import LiteGames from "./pages/lite/LiteGames";
+import LiteGameDetails from "./pages/lite/LiteGameDetails";
+import LiteCategories from "./pages/lite/LiteCategories";
+import LiteCategoryGames from "./pages/lite/LiteCategoryGames";
+import LiteTopGames from "./pages/lite/LiteTopGames";
+import LiteRecentGames from "./pages/lite/LiteRecentGames";
+
+// Lite mode CSS
+import "./lite.css";
+
 const queryClient = new QueryClient();
 
 // Remove lovable badge
@@ -42,10 +56,52 @@ const removeBadge = () => {
   }
 };
 
+// Router component that handles lite mode switching
+const AppRoutes = () => {
+  const { isLiteMode, isElectron } = useLiteMode();
+
+  // Use lite pages when in Electron and lite mode is enabled
+  const useLitePages = isElectron && isLiteMode;
+
+  return (
+    <Routes>
+      {/* Main pages - switch between regular and lite */}
+      <Route path="/" element={useLitePages ? <LiteIndex /> : <Index />} />
+      <Route path="/games" element={useLitePages ? <LiteGames /> : <Games />} />
+      <Route path="/categories" element={useLitePages ? <LiteCategories /> : <Categories />} />
+      <Route path="/categories/:slug" element={useLitePages ? <LiteCategoryGames /> : <CategoryGames />} />
+      <Route path="/top-games" element={useLitePages ? <LiteTopGames /> : <TopGames />} />
+      <Route path="/recent" element={useLitePages ? <LiteRecentGames /> : <RecentGames />} />
+      
+      {/* Pages that stay the same (no lite version needed) */}
+      <Route path="/faq" element={<FAQ />} />
+      <Route path="/how-to-download" element={<HowToDownload />} />
+      <Route path="/contact" element={<ContactUs />} />
+      <Route path="/report-issue" element={<ReportIssue />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/favorites" element={<Favorites />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/account" element={<Account />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/ktm-admin-panel" element={<Admin />} />
+      <Route path="/ktm/ai/trend" element={<AITrend />} />
+      <Route path="/ktm/ai/trend/:conversationId" element={<AITrend />} />
+      <Route path="/ktm/ai/coding" element={<AICodingHome />} />
+      <Route path="/ktm/ai/coding/:projectId" element={<AICodingProject />} />
+      
+      {/* Published Websites */}
+      <Route path="/website/:username" element={<PublishedWebsite />} />
+      <Route path="/website/:username/:page" element={<PublishedWebsite />} />
+      
+      {/* Game detail route - matches /game-slug-free-download */}
+      <Route path="/:slug" element={useLitePages ? <LiteGameDetails /> : <GameDetails />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
 const App = () => {
-  // Initialize lite mode for Electron
-  useLiteMode();
-  
   useEffect(() => {
     // Initial removal
     removeBadge();
@@ -69,35 +125,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <LauncherWrapper>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/games" element={<Games />} />
-                <Route path="/categories" element={<Categories />} />
-                <Route path="/categories/:slug" element={<CategoryGames />} />
-                <Route path="/top-games" element={<TopGames />} />
-                <Route path="/recent" element={<RecentGames />} />
-                <Route path="/faq" element={<FAQ />} />
-                <Route path="/how-to-download" element={<HowToDownload />} />
-                <Route path="/contact" element={<ContactUs />} />
-                <Route path="/report-issue" element={<ReportIssue />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/favorites" element={<Favorites />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/account" element={<Account />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/ktm-admin-panel" element={<Admin />} />
-                <Route path="/ktm/ai/trend" element={<AITrend />} />
-                <Route path="/ktm/ai/trend/:conversationId" element={<AITrend />} />
-                <Route path="/ktm/ai/coding" element={<AICodingHome />} />
-                <Route path="/ktm/ai/coding/:projectId" element={<AICodingProject />} />
-                {/* Published Websites */}
-                <Route path="/website/:username" element={<PublishedWebsite />} />
-                <Route path="/website/:username/:page" element={<PublishedWebsite />} />
-                {/* Game detail route - matches /game-slug-free-download */}
-                <Route path="/:slug" element={<GameDetails />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+                <AppRoutes />
               </LauncherWrapper>
             </BrowserRouter>
           </TooltipProvider>
