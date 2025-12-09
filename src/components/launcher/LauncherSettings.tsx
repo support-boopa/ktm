@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useElectron } from '@/hooks/useElectron';
 import { useLiteMode } from '@/hooks/useLiteMode';
+import { clearImageMemoryCache } from '@/hooks/useCachedImage';
 import {
   Dialog,
   DialogContent,
@@ -578,6 +579,7 @@ const LauncherSettings = ({ open, onOpenChange }: LauncherSettingsProps) => {
                       if (isElectron && (window as any).electronAPI?.clearImageCache) {
                         const result = await (window as any).electronAPI.clearImageCache();
                         if (result.success) {
+                          clearImageMemoryCache(); // Clear memory cache too
                           toast.success('تم مسح كاش الصور');
                         } else {
                           toast.error('فشل مسح الكاش');

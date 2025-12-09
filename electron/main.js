@@ -337,7 +337,7 @@ ipcMain.handle('clear-download-history', () => {
   return { success: true };
 });
 
-// Cache game image locally
+// Cache game image locally and return base64 data URL
 ipcMain.handle('cache-game-image', async (event, { gameId, imageUrl }) => {
   try {
     const gameImagesPath = path.join(app.getPath('userData'), 'games-images');
@@ -348,68 +348,96 @@ ipcMain.handle('cache-game-image', async (event, { gameId, imageUrl }) => {
     const extension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
     const imagePath = path.join(gameImagesPath, `${gameId}.${extension}`);
     
-    // Check if already cached
+    // Check if already cached - return as base64
     if (fs.existsSync(imagePath)) {
-      return { success: true, localPath: imagePath };
+      const imageBuffer = fs.readFileSync(imagePath);
+      const mimeType = extension === 'png' ? 'image/png' : 
+                       extension === 'webp' ? 'image/webp' : 
+                       extension === 'gif' ? 'image/gif' : 'image/jpeg';
+      const base64 = imageBuffer.toString('base64');
+      return { success: true, dataUrl: `data:${mimeType};base64,${base64}` };
     }
     
     // Download and cache image
     return new Promise((resolve) => {
       const protocol = imageUrl.startsWith('https') ? https : http;
       
-      const request = protocol.get(imageUrl, { 
-        timeout: 10000,
-        headers: { 'User-Agent': 'Mozilla/5.0' }
-      }, (response) => {
-        if (response.statusCode === 301 || response.statusCode === 302) {
-          // Handle redirect
-          protocol.get(response.headers.location, (redirectRes) => {
-            const fileStream = fs.createWriteStream(imagePath);
-            redirectRes.pipe(fileStream);
-            fileStream.on('finish', () => {
-              fileStream.close();
-              resolve({ success: true, localPath: imagePath });
-            });
-          }).on('error', () => resolve({ success: false }));
-          return;
-        }
-        
-        if (response.statusCode !== 200) {
-          resolve({ success: false });
-          return;
-        }
-        
-        const fileStream = fs.createWriteStream(imagePath);
-        response.pipe(fileStream);
-        fileStream.on('finish', () => {
-          fileStream.close();
-          resolve({ success: true, localPath: imagePath });
+      const downloadImage = (url) => {
+        const request = protocol.get(url, { 
+          timeout: 15000,
+          headers: { 'User-Agent': 'Mozilla/5.0' }
+        }, (response) => {
+          if (response.statusCode === 301 || response.statusCode === 302 || response.statusCode === 307) {
+            const redirectUrl = response.headers.location;
+            const redirectProtocol = redirectUrl.startsWith('https') ? https : http;
+            redirectProtocol.get(redirectUrl, { 
+              timeout: 15000,
+              headers: { 'User-Agent': 'Mozilla/5.0' }
+            }, (redirectRes) => {
+              const chunks = [];
+              redirectRes.on('data', chunk => chunks.push(chunk));
+              redirectRes.on('end', () => {
+                const imageBuffer = Buffer.concat(chunks);
+                fs.writeFileSync(imagePath, imageBuffer);
+                const mimeType = extension === 'png' ? 'image/png' : 
+                                 extension === 'webp' ? 'image/webp' : 
+                                 extension === 'gif' ? 'image/gif' : 'image/jpeg';
+                const base64 = imageBuffer.toString('base64');
+                resolve({ success: true, dataUrl: `data:${mimeType};base64,${base64}` });
+              });
+            }).on('error', () => resolve({ success: false }));
+            return;
+          }
+          
+          if (response.statusCode !== 200) {
+            resolve({ success: false });
+            return;
+          }
+          
+          const chunks = [];
+          response.on('data', chunk => chunks.push(chunk));
+          response.on('end', () => {
+            const imageBuffer = Buffer.concat(chunks);
+            fs.writeFileSync(imagePath, imageBuffer);
+            const mimeType = extension === 'png' ? 'image/png' : 
+                             extension === 'webp' ? 'image/webp' : 
+                             extension === 'gif' ? 'image/gif' : 'image/jpeg';
+            const base64 = imageBuffer.toString('base64');
+            resolve({ success: true, dataUrl: `data:${mimeType};base64,${base64}` });
+          });
         });
-        fileStream.on('error', () => resolve({ success: false }));
-      });
+        
+        request.on('error', () => resolve({ success: false }));
+        request.on('timeout', () => {
+          request.destroy();
+          resolve({ success: false });
+        });
+      };
       
-      request.on('error', () => resolve({ success: false }));
-      request.on('timeout', () => {
-        request.destroy();
-        resolve({ success: false });
-      });
+      downloadImage(imageUrl);
     });
   } catch (err) {
     return { success: false, error: err.message };
   }
 });
 
-// Get cached image path
+// Get cached image as base64 data URL
 ipcMain.handle('get-cached-image', async (event, gameId) => {
   try {
     const gameImagesPath = path.join(app.getPath('userData'), 'games-images');
     
     // Check for common extensions
-    const extensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    const extensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
     for (const ext of extensions) {
       const imagePath = path.join(gameImagesPath, `${gameId}.${ext}`);
       if (fs.existsSync(imagePath)) {
-        return { success: true, localPath: imagePath };
+        const imageBuffer = fs.readFileSync(imagePath);
+        const mimeType = ext === 'png' ? 'image/png' : 
+                         ext === 'webp' ? 'image/webp' : 
+                         ext === 'gif' ? 'image/gif' :
+                         ext === 'avif' ? 'image/avif' : 'image/jpeg';
+        const base64 = imageBuffer.toString('base64');
+        return { success: true, dataUrl: `data:${mimeType};base64,${base64}` };
       }
     }
     
