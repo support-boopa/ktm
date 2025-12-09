@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { Star, Sparkles, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FavoriteButton } from "./FavoriteButton";
-import { useCachedImage } from "@/hooks/useCachedImage";
 
 interface GameCardProps {
   game: {
@@ -50,7 +49,6 @@ const isRecentlyUpdated = (updatedAt?: string, createdAt?: string) => {
 export const GameCard = ({ game, index = 0 }: GameCardProps) => {
   const isNew = isNewGame(game.created_at);
   const isUpdated = isRecentlyUpdated(game.updated_at, game.created_at);
-  const { cachedSrc, isLoading } = useCachedImage(game.id, game.image);
 
   return (
     <Link
@@ -62,17 +60,13 @@ export const GameCard = ({ game, index = 0 }: GameCardProps) => {
     >
       {/* Image Container */}
       <div className="relative aspect-[3/4] overflow-hidden rounded-t-xl">
-        {isLoading ? (
-          <div className="w-full h-full bg-muted animate-pulse" />
-        ) : (
-          <img
-            src={cachedSrc}
-            alt={game.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            loading="lazy"
-            onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
-          />
-        )}
+        <img
+          src={game.image}
+          alt={game.title}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          loading="lazy"
+          onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
+        />
         
         {/* Overlay Gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent opacity-60" />

@@ -71,8 +71,6 @@ function createMainWindow() {
     minHeight: 700,
     frame: false,
     titleBarStyle: 'hidden',
-    transparent: false,
-    hasShadow: true,
     show: false,
     webPreferences: {
       nodeIntegration: false,
@@ -82,11 +80,10 @@ function createMainWindow() {
       backgroundThrottling: false,
       spellcheck: false,
       v8CacheOptions: 'code',
-      devTools: false
+      devTools: false // Disable DevTools completely
     },
     icon: path.join(__dirname, 'assets', 'icon.png'),
-    backgroundColor: settings.theme === 'light' ? '#ffffff' : '#0a0a0f',
-    autoHideMenuBar: true
+    backgroundColor: settings.theme === 'light' ? '#ffffff' : '#0a0a0f'
   });
 
   mainWindow.webContents.setBackgroundThrottling(false);
@@ -216,23 +213,12 @@ function applyTheme(theme) {
   `);
 }
 
-// Performance optimizations - Max 300 FPS
+// Performance optimizations
 app.commandLine.appendSwitch('disable-gpu-vsync');
 app.commandLine.appendSwitch('disable-frame-rate-limit');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
-app.commandLine.appendSwitch('max-gum-fps', '300');
-app.commandLine.appendSwitch('enable-features', 'VaapiVideoDecoder,VaapiVideoEncoder');
-app.commandLine.appendSwitch('disable-software-rasterizer');
-app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
-app.commandLine.appendSwitch('enable-native-gpu-memory-buffers');
-
-// Game images cache folder
-const gameImagesPath = path.join(app.getPath('userData'), 'games-images');
-if (!fs.existsSync(gameImagesPath)) {
-  fs.mkdirSync(gameImagesPath, { recursive: true });
-}
 
 app.whenReady().then(() => {
   createSplashWindow();
@@ -338,130 +324,6 @@ ipcMain.handle('clear-download-history', () => {
   downloadHistory = [];
   store.set('downloadHistory', downloadHistory);
   return { success: true };
-});
-
-// Cache game image locally and return base64 data URL
-ipcMain.handle('cache-game-image', async (event, { gameId, imageUrl }) => {
-  try {
-    const gameImagesPath = path.join(app.getPath('userData'), 'games-images');
-    if (!fs.existsSync(gameImagesPath)) {
-      fs.mkdirSync(gameImagesPath, { recursive: true });
-    }
-    
-    const extension = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
-    const imagePath = path.join(gameImagesPath, `${gameId}.${extension}`);
-    
-    // Check if already cached - return as base64
-    if (fs.existsSync(imagePath)) {
-      const imageBuffer = fs.readFileSync(imagePath);
-      const mimeType = extension === 'png' ? 'image/png' : 
-                       extension === 'webp' ? 'image/webp' : 
-                       extension === 'gif' ? 'image/gif' : 'image/jpeg';
-      const base64 = imageBuffer.toString('base64');
-      return { success: true, dataUrl: `data:${mimeType};base64,${base64}` };
-    }
-    
-    // Download and cache image
-    return new Promise((resolve) => {
-      const protocol = imageUrl.startsWith('https') ? https : http;
-      
-      const downloadImage = (url) => {
-        const request = protocol.get(url, { 
-          timeout: 15000,
-          headers: { 'User-Agent': 'Mozilla/5.0' }
-        }, (response) => {
-          if (response.statusCode === 301 || response.statusCode === 302 || response.statusCode === 307) {
-            const redirectUrl = response.headers.location;
-            const redirectProtocol = redirectUrl.startsWith('https') ? https : http;
-            redirectProtocol.get(redirectUrl, { 
-              timeout: 15000,
-              headers: { 'User-Agent': 'Mozilla/5.0' }
-            }, (redirectRes) => {
-              const chunks = [];
-              redirectRes.on('data', chunk => chunks.push(chunk));
-              redirectRes.on('end', () => {
-                const imageBuffer = Buffer.concat(chunks);
-                fs.writeFileSync(imagePath, imageBuffer);
-                const mimeType = extension === 'png' ? 'image/png' : 
-                                 extension === 'webp' ? 'image/webp' : 
-                                 extension === 'gif' ? 'image/gif' : 'image/jpeg';
-                const base64 = imageBuffer.toString('base64');
-                resolve({ success: true, dataUrl: `data:${mimeType};base64,${base64}` });
-              });
-            }).on('error', () => resolve({ success: false }));
-            return;
-          }
-          
-          if (response.statusCode !== 200) {
-            resolve({ success: false });
-            return;
-          }
-          
-          const chunks = [];
-          response.on('data', chunk => chunks.push(chunk));
-          response.on('end', () => {
-            const imageBuffer = Buffer.concat(chunks);
-            fs.writeFileSync(imagePath, imageBuffer);
-            const mimeType = extension === 'png' ? 'image/png' : 
-                             extension === 'webp' ? 'image/webp' : 
-                             extension === 'gif' ? 'image/gif' : 'image/jpeg';
-            const base64 = imageBuffer.toString('base64');
-            resolve({ success: true, dataUrl: `data:${mimeType};base64,${base64}` });
-          });
-        });
-        
-        request.on('error', () => resolve({ success: false }));
-        request.on('timeout', () => {
-          request.destroy();
-          resolve({ success: false });
-        });
-      };
-      
-      downloadImage(imageUrl);
-    });
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-});
-
-// Get cached image as base64 data URL
-ipcMain.handle('get-cached-image', async (event, gameId) => {
-  try {
-    const gameImagesPath = path.join(app.getPath('userData'), 'games-images');
-    
-    // Check for common extensions
-    const extensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
-    for (const ext of extensions) {
-      const imagePath = path.join(gameImagesPath, `${gameId}.${ext}`);
-      if (fs.existsSync(imagePath)) {
-        const imageBuffer = fs.readFileSync(imagePath);
-        const mimeType = ext === 'png' ? 'image/png' : 
-                         ext === 'webp' ? 'image/webp' : 
-                         ext === 'gif' ? 'image/gif' :
-                         ext === 'avif' ? 'image/avif' : 'image/jpeg';
-        const base64 = imageBuffer.toString('base64');
-        return { success: true, dataUrl: `data:${mimeType};base64,${base64}` };
-      }
-    }
-    
-    return { success: false };
-  } catch (err) {
-    return { success: false };
-  }
-});
-
-// Clear image cache
-ipcMain.handle('clear-image-cache', async () => {
-  try {
-    const gameImagesPath = path.join(app.getPath('userData'), 'games-images');
-    if (fs.existsSync(gameImagesPath)) {
-      fs.rmSync(gameImagesPath, { recursive: true, force: true });
-      fs.mkdirSync(gameImagesPath, { recursive: true });
-    }
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
 });
 
 // Select exe file for game

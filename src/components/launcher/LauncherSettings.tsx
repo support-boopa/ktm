@@ -10,7 +10,6 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useElectron } from '@/hooks/useElectron';
 import { useLiteMode } from '@/hooks/useLiteMode';
-import { clearImageMemoryCache } from '@/hooks/useCachedImage';
 import {
   Dialog,
   DialogContent,
@@ -558,37 +557,6 @@ const LauncherSettings = ({ open, onOpenChange }: LauncherSettingsProps) => {
                   >
                     <Trash2 className="w-4 h-4" />
                     مسح سجل التنزيلات
-                  </Button>
-                </div>
-
-                <div className="bg-muted/30 rounded-xl p-4 space-y-4">
-                  <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                    <Database className="w-4 h-4 text-primary" />
-                    كاش الصور
-                  </h3>
-                  
-                  <p className="text-xs text-muted-foreground">
-                    يتم تخزين صور الألعاب محلياً لتحسين الأداء وتقليل التحميل
-                  </p>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="w-full gap-2" 
-                    size="sm"
-                    onClick={async () => {
-                      if (isElectron && (window as any).electronAPI?.clearImageCache) {
-                        const result = await (window as any).electronAPI.clearImageCache();
-                        if (result.success) {
-                          clearImageMemoryCache(); // Clear memory cache too
-                          toast.success('تم مسح كاش الصور');
-                        } else {
-                          toast.error('فشل مسح الكاش');
-                        }
-                      }
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    مسح كاش الصور
                   </Button>
                 </div>
               </TabsContent>
