@@ -2,46 +2,34 @@ import { useState, useEffect } from 'react';
 
 const LITE_MODE_KEY = 'ktm-lite-mode';
 
+// Check if running in Electron
+const checkIsElectron = () => !!(window as any).electronAPI;
+
+// Get saved lite mode preference
+const getSavedLiteMode = () => {
+  if (!checkIsElectron()) return false;
+  const saved = localStorage.getItem(LITE_MODE_KEY);
+  // Default to true (enabled) for Electron
+  return saved === null ? true : saved === 'true';
+};
+
 export const useLiteMode = () => {
-  const [isLiteMode, setIsLiteMode] = useState(false);
-  const [isElectron, setIsElectron] = useState(false);
+  const [isElectron] = useState(checkIsElectron);
+  const [isLiteMode, setIsLiteMode] = useState(getSavedLiteMode);
 
+  // No longer need to add CSS classes - we use separate pages instead
   useEffect(() => {
-    // Check if running in Electron
-    const electronDetected = !!(window as any).electronAPI;
-    setIsElectron(electronDetected);
-
-    if (electronDetected) {
-      // Check saved preference, default to true (enabled)
-      const savedPreference = localStorage.getItem(LITE_MODE_KEY);
-      const shouldEnable = savedPreference === null ? true : savedPreference === 'true';
-      setIsLiteMode(shouldEnable);
-      applyLiteMode(shouldEnable);
-    } else {
-      // Not in Electron - never apply lite mode
+    // Just ensure the state is correct on mount
+    if (!isElectron) {
       setIsLiteMode(false);
-      applyLiteMode(false);
     }
-
-    return () => {
-      applyLiteMode(false);
-    };
-  }, []);
-
-  const applyLiteMode = (enabled: boolean) => {
-    if (enabled) {
-      document.documentElement.classList.add('lite-mode');
-      document.body.classList.add('lite-mode');
-    } else {
-      document.documentElement.classList.remove('lite-mode');
-      document.body.classList.remove('lite-mode');
-    }
-  };
+  }, [isElectron]);
 
   const toggleLiteMode = (enabled: boolean) => {
     setIsLiteMode(enabled);
     localStorage.setItem(LITE_MODE_KEY, String(enabled));
-    applyLiteMode(enabled);
+    // Force page reload to switch between lite/regular pages
+    window.location.reload();
   };
 
   return { isLiteMode, isElectron, toggleLiteMode };
