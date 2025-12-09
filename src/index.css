@@ -673,17 +673,18 @@ button, a, input, select, textarea {
 .lite-mode *,
 .lite-mode *::before,
 .lite-mode *::after {
-  transition-duration: 0.15s !important;
+  transition-duration: 0.1s !important;
   transition-delay: 0ms !important;
 }
 
-/* Disable ONLY heavy looping animations (particles, floating, pulse) */
+/* Disable ALL looping animations */
 .lite-mode .animate-float,
 .lite-mode .animate-pulse,
 .lite-mode .animate-bounce,
 .lite-mode .animate-spin,
 .lite-mode .animate-ping,
-.lite-mode .animate-pulse-glow {
+.lite-mode .animate-pulse-glow,
+.lite-mode [class*="animate-"] {
   animation: none !important;
 }
 
@@ -694,69 +695,92 @@ button, a, input, select, textarea {
   transform: translateY(0) !important;
 }
 
-/* Disable particle backgrounds */
+/* Completely hide particle backgrounds */
+.lite-mode canvas,
 .lite-mode .particles,
 .lite-mode .particle-bg,
-.lite-mode [class*="particle"]:not(button):not(a):not(img):not(video) {
+.lite-mode [class*="particle"] {
+  display: none !important;
+  visibility: hidden !important;
   opacity: 0 !important;
-  pointer-events: none !important;
 }
 
-/* Reduce glow effects intensity (not remove) */
+/* REMOVE all glow effects completely */
 .lite-mode [class*="shadow-neon"],
-.lite-mode [class*="shadow-glow"] {
-  box-shadow: 0 0 10px hsl(var(--primary) / 0.15) !important;
+.lite-mode [class*="shadow-glow"],
+.lite-mode [class*="glow"],
+.lite-mode .neon-glow,
+.lite-mode .btn-primary::before,
+.lite-mode .btn-primary::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
 
-/* Reduce blur effects (heavy on GPU) */
-.lite-mode [class*="backdrop-blur-xl"],
-.lite-mode [class*="backdrop-blur-2xl"],
-.lite-mode [class*="backdrop-blur-3xl"] {
-  backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
+/* Remove glow borders */
+.lite-mode [class*="ring-"],
+.lite-mode [class*="border-primary"],
+.lite-mode [class*="border-neon"] {
+  box-shadow: none !important;
 }
 
-.lite-mode [class*="backdrop-blur-lg"],
-.lite-mode [class*="backdrop-blur-md"] {
-  backdrop-filter: blur(2px) !important;
-  -webkit-backdrop-filter: blur(2px) !important;
+/* Disable ALL blur effects */
+.lite-mode [class*="backdrop-blur"],
+.lite-mode [class*="blur-"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
 }
 
-/* Disable animated gradients but keep static gradients */
+/* Disable animated gradients */
 .lite-mode [class*="animate-gradient"] {
   animation: none !important;
   background-size: 100% 100% !important;
 }
 
-/* Reduce heavy shadows */
-.lite-mode [class*="shadow-2xl"] {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+/* Remove heavy shadows */
+.lite-mode [class*="shadow-2xl"],
+.lite-mode [class*="shadow-xl"],
+.lite-mode [class*="shadow-lg"] {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
 }
 
-.lite-mode [class*="shadow-xl"] {
-  box-shadow: 0 2px 12px rgba(0,0,0,0.25) !important;
-}
-
-/* Disable hover scale transforms */
+/* Disable hover transforms */
 .lite-mode .hover\:scale-105:hover,
 .lite-mode .hover\:scale-110:hover,
 .lite-mode .group-hover\:scale-105,
 .lite-mode .group-hover\:scale-110 {
-  transform: scale(1.02) !important;
+  transform: none !important;
 }
 
-/* Carousel transitions - faster */
-.lite-mode .embla__slide {
-  transition-duration: 0.2s !important;
-}
-
-/* Simplify card hovers */
+/* Simpler card hovers */
 .lite-mode .game-card:hover,
 .lite-mode .card:hover {
-  transform: translateY(-2px) !important;
+  transform: none !important;
+}
+
+/* Reduce image quality for performance */
+.lite-mode img {
+  image-rendering: optimizeSpeed !important;
 }
 
 /* Performance optimizations */
 .lite-mode * {
   will-change: auto !important;
+  backface-visibility: hidden !important;
+}
+
+/* Remove glass-morphism effects */
+.lite-mode .glass-morphism,
+.lite-mode .glass-card,
+.lite-mode [class*="glass"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Disable neon text */
+.lite-mode .neon-text,
+.lite-mode [class*="neon-text"] {
+  text-shadow: none !important;
 }
