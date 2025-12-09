@@ -59,10 +59,8 @@ function createSplashWindow() {
 }
 
 function createMainWindow() {
-  // Apply hardware acceleration setting
-  if (!settings.hardwareAcceleration) {
-    app.disableHardwareAcceleration();
-  }
+  // Hardware acceleration is now applied before app.whenReady()
+  // No need to call disableHardwareAcceleration here
 
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -219,6 +217,14 @@ app.commandLine.appendSwitch('disable-frame-rate-limit');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
+
+// CRITICAL: Apply hardware acceleration setting BEFORE app is ready
+// This must be called before app.whenReady() or it won't take effect
+const savedSettings = store.get('settings') || {};
+if (savedSettings.hardwareAcceleration === false) {
+  app.disableHardwareAcceleration();
+  console.log('Hardware acceleration disabled from saved settings');
+}
 
 app.whenReady().then(() => {
   createSplashWindow();

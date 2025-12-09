@@ -677,6 +677,12 @@ button, a, input, select, textarea {
 }
 
 /* ===== REMOVE ALL SHADOWS ===== */
+/* ==========================================================================
+   LITE MODE - COMPREHENSIVE PERFORMANCE OPTIMIZATION FOR ELECTRON LAUNCHER
+   Removes ALL heavy visual effects while keeping functionality intact
+   ========================================================================== */
+
+/* ===== GLOBAL SHADOW & TEXT-SHADOW REMOVAL ===== */
 .lite-mode,
 .lite-mode *,
 .lite-mode *::before,
@@ -685,12 +691,14 @@ button, a, input, select, textarea {
   text-shadow: none !important;
 }
 
-/* ===== REMOVE ALL BLUR EFFECTS ===== */
+/* ===== REMOVE ALL BLUR & FILTER EFFECTS ===== */
+.lite-mode *,
 .lite-mode .glass-morphism,
 .lite-mode .glass-card,
 .lite-mode [class*="backdrop-blur"],
 .lite-mode [class*="blur"],
-.lite-mode [style*="blur"] {
+.lite-mode [style*="blur"],
+.lite-mode [class*="filter"] {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   filter: none !important;
@@ -704,18 +712,27 @@ button, a, input, select, textarea {
 .lite-mode .hover-glow,
 .lite-mode .hover-glow:hover,
 .lite-mode [class*="glow"],
-.lite-mode [class*="neon"] {
+.lite-mode [class*="neon"],
+.lite-mode [class*="shadow"] {
   box-shadow: none !important;
   text-shadow: none !important;
   filter: none !important;
 }
 
-/* ===== REMOVE GLOW BORDERS ===== */
+/* ===== REMOVE ALL GRADIENTS (Use solid colors) ===== */
+.lite-mode [class*="gradient"],
+.lite-mode [style*="gradient"] {
+  background-image: none !important;
+  background: hsl(var(--card)) !important;
+}
+
+/* ===== SIMPLIFY ALL CARDS ===== */
 .lite-mode .game-card,
 .lite-mode .game-card:hover,
-.lite-mode .game-card::before,
 .lite-mode .card,
 .lite-mode .card:hover,
+.lite-mode .glass-morphism,
+.lite-mode .glass-card,
 .lite-mode .btn-primary,
 .lite-mode .btn-primary:hover,
 .lite-mode .search-input,
@@ -725,72 +742,227 @@ button, a, input, select, textarea {
 .lite-mode .admin-card,
 .lite-mode .admin-card:hover,
 .lite-mode .stat-card,
-.lite-mode .stat-card:hover {
+.lite-mode .stat-card:hover,
+.lite-mode .featured-badge,
+.lite-mode .achievement-card,
+.lite-mode .challenge-card,
+.lite-mode .profile-card {
   box-shadow: none !important;
-}
-
-/* ===== SIMPLIFY BACKGROUNDS ===== */
-.lite-mode .glass-morphism,
-.lite-mode .glass-card {
   background: hsl(var(--card)) !important;
   border: 1px solid hsl(var(--border)) !important;
 }
 
-/* ===== REMOVE PSEUDO-ELEMENT EFFECTS ===== */
+/* ===== REMOVE ALL PSEUDO-ELEMENT EFFECTS ===== */
+.lite-mode *::before,
+.lite-mode *::after {
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
 .lite-mode .glass-morphism::before,
 .lite-mode .glass-card::before,
 .lite-mode .game-card::before,
 .lite-mode .glass-glow::after,
-.lite-mode .nav-link::after {
+.lite-mode .nav-link::after,
+.lite-mode .btn-primary::before,
+.lite-mode .btn-primary::after,
+.lite-mode .category-badge::before,
+.lite-mode .featured-badge::before,
+.lite-mode .hero-section::before,
+.lite-mode .hero-section::after {
   display: none !important;
+  content: none !important;
 }
 
-/* ===== BUTTON CLEANUP ===== */
-.lite-mode .btn-primary {
+/* ===== SIMPLIFY BUTTONS ===== */
+.lite-mode .btn-primary,
+.lite-mode button[class*="primary"],
+.lite-mode .button {
   background: hsl(var(--primary)) !important;
+  border: none !important;
 }
 
-.lite-mode .btn-primary::before {
-  display: none !important;
-}
-
-/* ===== FOCUS STATES WITHOUT GLOW ===== */
+/* ===== REMOVE FOCUS RING GLOW ===== */
 .lite-mode *:focus,
-.lite-mode *:focus-visible {
+.lite-mode *:focus-visible,
+.lite-mode *:focus-within {
   outline: 2px solid hsl(var(--primary)) !important;
   outline-offset: 2px !important;
   box-shadow: none !important;
+  ring: none !important;
 }
 
-/* ===== HOVER STATES WITHOUT GLOW ===== */
+/* ===== REMOVE HOVER EFFECTS ===== */
 .lite-mode *:hover {
   box-shadow: none !important;
   text-shadow: none !important;
+  filter: none !important;
+}
+
+/* ===== SIMPLIFY BORDERS (Remove glow borders) ===== */
+.lite-mode [class*="ring"],
+.lite-mode [class*="outline"] {
+  box-shadow: none !important;
 }
 
 /* ===== REDUCE IMAGE QUALITY FOR PERFORMANCE ===== */
-.lite-mode img {
+.lite-mode img,
+.lite-mode video,
+.lite-mode picture {
   image-rendering: optimizeSpeed !important;
   -webkit-image-rendering: optimizeSpeed !important;
 }
 
-/* ===== DISABLE HEAVY LOOPING ANIMATIONS ONLY ===== */
+/* ===== DISABLE ALL LOOPING ANIMATIONS ===== */
 .lite-mode .animate-pulse,
 .lite-mode .animate-pulse-glow,
 .lite-mode .animate-glow-pulse,
-.lite-mode .animate-shimmer {
+.lite-mode .animate-shimmer,
+.lite-mode .animate-float,
+.lite-mode .animate-bounce,
+.lite-mode .animate-spin,
+.lite-mode .animate-ping,
+.lite-mode [class*="animate-spin"],
+.lite-mode [class*="animate-pulse"],
+.lite-mode [class*="animate-bounce"],
+.lite-mode [class*="animate-float"] {
   animation: none !important;
 }
 
-/* ===== KEEP NORMAL ANIMATIONS WORKING ===== */
-/* fade-in, slide-up, scale-in, etc. are preserved */
+/* ===== SIMPLIFY TRANSITIONS (Faster) ===== */
+.lite-mode * {
+  transition-duration: 0.1s !important;
+  transition-timing-function: linear !important;
+}
+
+/* ===== DISABLE HEAVY TRANSFORMS ===== */
+.lite-mode [class*="scale-"],
+.lite-mode [class*="rotate-"],
+.lite-mode [class*="skew-"] {
+  transform: none !important;
+}
 
 /* ===== PERFORMANCE OPTIMIZATIONS ===== */
 .lite-mode * {
   will-change: auto !important;
+  contain: layout style !important;
 }
 
-/* ===== SCROLLBAR WITHOUT GLOW ===== */
-.lite-mode ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.5) !important;
+/* ===== SIMPLIFY SCROLLBAR ===== */
+.lite-mode ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground)) !important;
+  box-shadow: none !important;
 }
+
+.lite-mode ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary)) !important;
+}
+
+/* ===== REMOVE OVERLAY EFFECTS ===== */
+.lite-mode [class*="overlay"],
+.lite-mode [class*="backdrop"] {
+  background: hsl(var(--background) / 0.9) !important;
+  backdrop-filter: none !important;
+}
+
+/* ===== SIMPLIFY HERO SECTION ===== */
+.lite-mode .hero-section,
+.lite-mode .hero-carousel,
+.lite-mode [class*="hero"] {
+  background: hsl(var(--background)) !important;
+}
+
+/* ===== REMOVE DECORATIVE ELEMENTS ===== */
+.lite-mode .decoration,
+.lite-mode .ornament,
+.lite-mode [class*="decoration"],
+.lite-mode [class*="ornament"] {
+  display: none !important;
+}
+
+/* ===== SIMPLIFY NAVBAR ===== */
+.lite-mode nav,
+.lite-mode .navbar,
+.lite-mode header {
+  background: hsl(var(--background)) !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+/* ===== SIMPLIFY FOOTER ===== */
+.lite-mode footer {
+  background: hsl(var(--background)) !important;
+  box-shadow: none !important;
+}
+
+/* ===== SIMPLIFY DIALOGS & MODALS ===== */
+.lite-mode [role="dialog"],
+.lite-mode [class*="dialog"],
+.lite-mode [class*="modal"],
+.lite-mode .popover,
+.lite-mode .dropdown {
+  background: hsl(var(--card)) !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 4px 12px hsl(0 0% 0% / 0.3) !important;
+}
+
+/* ===== SIMPLIFY TABS ===== */
+.lite-mode [role="tablist"],
+.lite-mode .tabs {
+  background: hsl(var(--muted)) !important;
+  box-shadow: none !important;
+}
+
+/* ===== SIMPLIFY INPUTS ===== */
+.lite-mode input,
+.lite-mode textarea,
+.lite-mode select {
+  background: hsl(var(--input)) !important;
+  box-shadow: none !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+/* ===== SIMPLIFY BADGES ===== */
+.lite-mode .badge,
+.lite-mode [class*="badge"] {
+  background: hsl(var(--muted)) !important;
+  box-shadow: none !important;
+}
+
+/* ===== REMOVE CAROUSEL EFFECTS ===== */
+.lite-mode .carousel,
+.lite-mode [class*="carousel"] {
+  box-shadow: none !important;
+}
+
+/* ===== DISABLE EMBLA CAROUSEL HEAVY EFFECTS ===== */
+.lite-mode .embla,
+.lite-mode .embla__container,
+.lite-mode .embla__slide {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* ===== SIMPLIFY PROGRESS BARS ===== */
+.lite-mode .progress,
+.lite-mode [role="progressbar"] {
+  box-shadow: none !important;
+  background: hsl(var(--muted)) !important;
+}
+
+/* ===== SIMPLIFY SKELETON LOADERS ===== */
+.lite-mode .skeleton,
+.lite-mode [class*="skeleton"] {
+  animation: none !important;
+  background: hsl(var(--muted)) !important;
+}
+
+/* ===== KEEP ESSENTIAL FUNCTIONALITY ===== */
+/* Preserve opacity and visibility for functional elements */
+.lite-mode .hidden { display: none !important; }
+.lite-mode .invisible { visibility: hidden !important; }
+.lite-mode .opacity-0 { opacity: 0 !important; }
+.lite-mode .opacity-50 { opacity: 0.5 !important; }
+.lite-mode .opacity-100 { opacity: 1 !important; }
