@@ -5,6 +5,10 @@
 
 ---
 
+# https://ktm.lovable.app Our Website
+
+---
+
 ## 📌 Table of Contents
 - [Overview](#-overview)  
 - [Features](#-features)  
@@ -89,7 +93,7 @@ A desktop application allowing:
 | AI | Edge Functions |
 | Launcher | Electron + Node.js |
 | Styling | TailwindCSS |
-| Deployment | Lovable.dev |
+| Deployment | https://ktm.lovable.app |
 
 ---
 
