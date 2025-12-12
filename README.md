@@ -1,73 +1,250 @@
-# Welcome to your Lovable project
+# 🚀 KTM Games – Open Source Platform (Website + Launcher)
+*A modern gaming platform built with React, TypeScript, Supabase, and Electron.*
 
-## Project info
+<img src="https://ktm.lovable.app/favicon.png" width="120">
 
-**URL**: https://lovable.dev/projects/df1bc4c1-0a49-46d6-a979-545b6e7c88aa
+---
 
-## How can I edit this code?
+## 📌 Table of Contents
+- [Overview](#-overview)  
+- [Features](#-features)  
+- [Tech Stack](#-tech-stack)  
+- [Project Structure](#-project-structure)  
+- [Installation](#-installation)  
+- [Environment Variables](#-environment-variables)  
+- [Supabase Database Schema](#-supabase-database-schema)  
+- [Supabase Functions](#-supabase-functions)  
+- [AI Features](#-ai-features)  
+- [Electron Launcher](#-electron-launcher)  
+- [Scripts](#-scripts)  
+- [Contributing](#-contributing)  
+- [License](#-license)
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+# 📖 Overview
+**KTM Games** is a complete platform for browsing, downloading, and launching PC games.  
+It contains two fully integrated products:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/df1bc4c1-0a49-46d6-a979-545b6e7c88aa) and start prompting.
+### 🟦 KTM Games Website  
+Built using **React + TypeScript + Supabase**, providing:
+- Game pages  
+- AI-powered recommendations  
+- Smart sitemap generation  
+- Real-time views  
+- Comments  
+- Full SEO  
+- Responsive UI  
+- Smart visibility (hiding empty sections)
 
-Changes made via Lovable will be committed automatically to this repo.
+### 🟩 KTM Launcher (Electron)
+A desktop application allowing:
+- Direct game downloads  
+- Resume/pause  
+- Local storage for installed games  
+- Custom installation directory  
+- Game launching  
+- Library system  
+- Settings page  
+- Light/Dark mode  
+- Full filesystem access
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+# 🌟 Features
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Website  
+✔ Dynamic game pages  
+✔ Categories & filters  
+✔ Realtime views  
+✔ SEO meta tags  
+✔ Auto-generated sitemap  
+✔ Trailer player  
+✔ Screenshots gallery  
+✔ AI recommendations  
+✔ Comments system  
+✔ Caching  
+✔ Dual themes  
 
-Follow these steps:
+### Launcher  
+✔ Electron-based  
+✔ Windows installer  
+✔ Download manager  
+✔ Resume/pause  
+✔ Local configs  
+✔ Game auto-detection  
+✔ “Play Now” button  
+✔ Library  
+✔ Settings  
+✔ Node.js fs access  
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 🛠 Tech Stack
+| Layer | Technology |
+|------|------------|
+| Frontend | React, TypeScript, Vite |
+| Backend | Supabase |
+| Realtime | Supabase Channels |
+| AI | Edge Functions |
+| Launcher | Electron + Node.js |
+| Styling | TailwindCSS |
+| Deployment | Lovable.dev |
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 📂 Project Structure
+
+```
+ktm/
+│
+├── src/
+│   ├── pages/
+│   ├── ui/
+│   ├── hooks/
+│   ├── integrations/
+│
+├── electron/
+│   ├── main.js
+│   ├── preload.js
+│   ├── launcher-ui/
+│
+└── README.md
+```
+
+---
+
+# 🔧 Installation
+
+### 1️⃣ Clone Repo
+```bash
+git clone https://github.com/KTM-source/ktm.git
+cd ktm
+```
+
+### 2️⃣ Install Dependencies
+```bash
+npm install
+```
+
+### 3️⃣ Run Dev
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### 4️⃣ Build
+```bash
+npm run build
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+# 🔐 Environment Variables
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
 
-## What technologies are used for this project?
+Launcher:
 
-This project is built with:
+```
+DOWNLOAD_PATH=
+LAUNCHER_THEME=
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+# 🗃 Supabase Database Schema (Simplified)
 
-Simply open [Lovable](https://lovable.dev/projects/df1bc4c1-0a49-46d6-a979-545b6e7c88aa) and click on Share -> Publish.
+### Table: games
+| Field | Type |
+|-------|------|
+| id | uuid |
+| title | text |
+| slug | text |
+| version | text |
+| category | text |
+| size | text |
+| description | text |
+| screenshots | array |
+| features | array |
+| download_link | text |
+| system_requirements_minimum | json |
+| system_requirements_recommended | json |
+| views | int |
+| created_at | timestamp |
+| updated_at | timestamp |
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+# ⚙️ Supabase Functions
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### 1. `generate-sitemap`
+Builds dynamic XML sitemap.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### 2. `find-similar-games`
+AI similarity recommendations.
+
+### 3. `increment_views`
+Atomic view counter.
+
+---
+
+# 🤖 AI Features
+✔ Similar games  
+✔ Chat assistant  
+✔ Description rewriting  
+✔ Translation  
+✔ Site stats Q&A  
+
+---
+
+# 🟦 Electron Launcher
+
+### Run Launcher
+```bash
+cd launcher
+npm install
+npm start
+```
+
+### Build Installer
+```bash
+npm run build
+```
+
+Features:
+- Download manager  
+- Config save  
+- Game launching  
+- Light/dark mode  
+- Library  
+
+---
+
+# 📜 Scripts
+
+| Script | What it does |
+|--------|--------------|
+| `npm run dev` | Dev mode |
+| `npm run build` | Build website |
+| `npm run preview` | Preview build |
+| `npm run launch` | Start launcher |
+| `npm run build:launcher` | Build installer |
+
+---
+
+# 🤝 Contributing
+PRs welcome. Please follow TypeScript clean style.
+
+---
+
+# 📄 License
+MIT License.
+
+---
+
+# 🎉 Final Notes
+KTM Games is designed for performance, scalability, and AI integration.  
+Feel free to use, modify, and build upon it!
